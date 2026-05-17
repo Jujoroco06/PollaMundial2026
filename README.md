@@ -1,241 +1,176 @@
-# ⚽ Polla Familiar — Mundial 2026
-## Arquitectura Completa + Guía de Despliegue
+# ⚽ Polla Mundial 2026
 
----
+Una aplicación web completamente funcional para predicciones de partidos del Mundial de Fútbol 2026, deployable en GitHub Pages sin necesidad de backend.
 
-## 📐 Arquitectura del Sistema
+## 🎯 Características
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     GITHUB PAGES (Frontend)                     │
-│                                                                 │
-│  index.html  ◄──── Todo en un solo archivo HTML/CSS/JS         │
-│    ├─ AuthModule       (registro, login, sesión JWT)            │
-│    ├─ LeaderboardModule (clasificación en tiempo real)          │
-│    ├─ MatchesModule    (listado de partidos + predicciones)     │
-│    ├─ PredictionsModule (formulario de predicciones)            │
-│    └─ AdminModule      (panel exclusivo de administrador)       │
-│                                                                 │
-│  Persistencia:  localStorage  (modo standalone sin backend)    │
-│  Seguridad:     SHA-256 + salt para contraseñas                │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │ HTTP REST (JWT Bearer token)
-                           │ (cuando se conecta al backend Java)
-┌──────────────────────────▼──────────────────────────────────────┐
-│               BACKEND Java / Spring Boot 3.2                    │
-│                                                                 │
-│  AuthController    → POST /api/auth/register                   │
-│                    → POST /api/auth/login                      │
-│                                                                 │
-│  MatchController   → GET  /api/matches              (público)  │
-│                    → POST /api/matches              (admin)    │
-│                    → PUT  /api/matches/{id}/result  (admin)    │
-│                                                                 │
-│  PredictionController → GET  /api/predictions/mine             │
-│                       → PUT  /api/predictions/{matchId}        │
-│                                                                 │
-│  LeaderboardController → GET /api/leaderboard       (público)  │
-│                                                                 │
-│  ScoreService  ←─ lógica centralizada de puntuación            │
-│    ├─ Resultado exacto:    +5 puntos                           │
-│    └─ Resultado correcto:  +3 puntos                           │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │ JPA / Hibernate
-┌──────────────────────────▼──────────────────────────────────────┐
-│           BASE DE DATOS (H2 dev / PostgreSQL prod)              │
-│                                                                 │
-│  users       │ id, name, username, password_hash, is_admin     │
-│  matches     │ id, home_team, away_team, datetime, stage,      │
-│              │ status, score_home, score_away                  │
-│  predictions │ id, match_id, user_id, pred_home, pred_away,   │
-│              │ points_awarded, exact, scored                   │
-│  score_entries│ id, user_id, match_id, points, reason         │
-└─────────────────────────────────────────────────────────────────┘
+- ✅ **Autenticación segura** con contraseñas hasheadas
+- ✅ **Predicciones en tiempo real** antes de cada partido
+- ✅ **Deadlines automáticos** que cierran partidos
+- ✅ **Scoring automático**: +5 exacto, +3 resultado correcto
+- ✅ **Leaderboard en vivo** con rankings actualizados
+- ✅ **Panel de administración** para gestionar partidos
+- ✅ **Almacenamiento local** (localStorage) — sin servidor necesario
+- ✅ **Diseño responsivo** para móvil, tablet y desktop
+
+## 🚀 Despliegue Rápido
+
+### En GitHub Pages (Recomendado)
+
+```bash
+# 1. Crea un repositorio en GitHub
+# 2. Sube index.html a la rama main
+# 3. Ve a Settings → Pages → Deploy from branch (main)
+# 4. Tu app estará en: https://tu-usuario.github.io/mundial2026/
 ```
 
----
+**Tiempo total**: 5 minutos
 
-## 🎯 Sistema de Puntuación
+### Localmente (Desarrollo)
+
+```bash
+# Solo abre index.html en tu navegador
+open index.html
+```
+
+## 📖 Guía Rápida
+
+### Para Administradores
+
+1. **Registrate** (el primer usuario es admin automáticamente)
+2. Ve a **⚙️ Administrar**
+3. Agrega partidos con equipos, fechas y horas
+4. Establece deadlines para cada partido
+5. Registra resultados cuando terminen los partidos
+6. Los puntos se calculan automáticamente
+
+### Para Usuarios
+
+1. **Registrate** con tu nombre de usuario
+2. Ve a **⚽ Todos los Partidos**
+3. Ingresa tus predicciones antes del deadline
+4. Ve tu puntuación en **🏆 Clasificación**
+
+## 📊 Sistema de Puntuación
 
 | Resultado | Puntos |
 |-----------|--------|
-| Acierta el resultado (G/E/P) | **+3 pts** |
-| Marcador exacto | **+5 pts** |
-| Resultado incorrecto | 0 pts |
+| Marcador exacto | **+5** |
+| Resultado correcto (G/E/P) | **+3** |
+| Incorrecto | **0** |
 
-**Ejemplo:**
-- Partido real: Colombia 2 – 1 Argentina
-- Usuario A predice: 2 – 1 → **+5 pts** (exacto)
-- Usuario B predice: 1 – 0 → **+3 pts** (acertó victoria Colombia)
-- Usuario C predice: 0 – 2 → **0 pts** (falló)
+## 🔐 Seguridad
 
----
+- Contraseñas hasheadas con SHA-256
+- Datos almacenados localmente (no se envían a servidores)
+- Cada navegador tiene sus propios datos
+- Acceso basado en roles (admin/usuario)
 
-## 🚀 Modo 1: Solo GitHub Pages (sin backend)
+## 📱 Compatibilidad
 
-La aplicación **funciona completamente sin backend**. Usa `localStorage` del navegador.
+- ✅ Chrome/Chromium
+- ✅ Firefox
+- ✅ Safari
+- ✅ Edge
+- ✅ Navegadores móviles
 
-### Pasos:
-```bash
-# 1. Fork o crea un repositorio en GitHub
-# 2. Sube index.html al repositorio
-# 3. Ve a Settings → Pages → Source: Deploy from branch → main
-# 4. ¡Listo! Tu app estará en: https://tu-usuario.github.io/tu-repo/
+## 📂 Estructura
+
+```
+mundial2026/
+├── index.html           # Aplicación completa (HTML + CSS + JS)
+├── DEPLOYMENT_GUIDE.md  # Guía detallada de despliegue
+└── README.md            # Este archivo
 ```
 
-### Limitaciones del modo standalone:
-- Los datos están en el navegador de cada usuario (no se comparten entre dispositivos)
-- **Solución:** El administrador gestiona todo desde su dispositivo; comparte la URL con todos
+## ⚙️ Configuración
 
----
+### Cambiar Sistema de Puntuación
 
-## 🖥️ Modo 2: Con Backend Java (Recomendado para producción)
+Abre `index.html` y busca:
 
-### Requisitos
-- Java 21+
-- Maven 3.9+
-- PostgreSQL (o cualquier BD SQL)
-
-### Configuración (`application.properties`):
-```properties
-# Server
-server.port=8080
-
-# Database (PostgreSQL en producción)
-spring.datasource.url=jdbc:postgresql://localhost:5432/mundial2026
-spring.datasource.username=tu_usuario
-spring.datasource.password=tu_contraseña
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=false
-
-# JWT — CAMBIA ESTE SECRET EN PRODUCCIÓN
-jwt.secret=cambia_esto_por_una_clave_segura_de_al_menos_32_chars
-jwt.expiration-ms=86400000
-
-# CORS — ajusta al dominio de GitHub Pages
-app.cors.allowed-origins=https://tu-usuario.github.io
-```
-
-### Despliegue del Backend:
-```bash
-# Construir
-mvn clean package -DskipTests
-
-# Ejecutar
-java -jar target/mundial2026-api-1.0.0.jar
-
-# O con Docker:
-docker build -t mundial2026-api .
-docker run -p 8080:8080 mundial2026-api
-```
-
-### Conectar el Frontend al Backend:
-Agrega esta variable al inicio del `<script>` en `index.html`:
 ```javascript
-const API_URL = 'https://tu-backend.railway.app/api'; // o tu dominio
+const SCORING = {
+  EXACT: 5,              // Puntos por marcador exacto
+  CORRECT_OUTCOME: 3     // Puntos por resultado correcto
+};
 ```
 
-**Opciones de hosting gratuito para el backend:**
-- **Railway.app** — gratis hasta cierto límite, muy fácil con Spring Boot
-- **Render.com** — plan gratuito disponible
-- **Fly.io** — generoso nivel gratuito
-- **Oracle Cloud Free Tier** — VM gratuita permanente
+Modifica los números según necesites.
+
+## 🐛 Troubleshooting
+
+**"No puedo acceder a la aplicación"**
+- Verifica que GitHub Pages esté habilitado
+- Espera 2-3 minutos después de activarlo
+
+**"Se me olvidó la contraseña"**
+- Abre la consola (F12) y ejecuta: `localStorage.clear()`
+- Recarga y regístrate de nuevo
+
+**"Los datos desaparecieron"**
+- Probablemente limpiaste el caché del navegador
+- Los datos están en localStorage y se pierden si limpias el caché
+
+
+## 📝 Ejemplo de Uso
+
+1. **Admin** se registra → automáticamente es admin
+2. **Admin** agrega partidos: Colombia vs Argentina (12 jun, 18:00)
+3. **Admin** establece deadline: 12 jun, 17:00
+4. **Familia** se registra
+5. **Familia** predice: Colombia 2 - Argentina 1
+6. Termina el partido: resultado real 2 - 1
+7. **Sistema** otorga +5 puntos (exacto)
+8. **Familia** ve su puntuación en la clasificación
+
+## 🎮 Características Avanzadas
+
+### Countdown en Tiempo Real
+
+Cada partido muestra un countdown que se actualiza cada segundo hasta el deadline.
+
+### Bloqueo Automático
+
+Después del deadline, el partido se bloquea automáticamente. Nadie puede hacer nuevas predicciones.
+
+### Historial de Predicciones
+
+En "Mis Predicciones" ves todas tus predicciones anteriores con los resultados y puntos ganados.
+
+### Leaderboard Dinámico
+
+La clasificación se actualiza en tiempo real cuando se registran resultados.
+
+## 🌍 Despliegue Global
+
+Esta aplicación funciona en cualquier lugar con internet:
+
+- **GitHub Pages** (recomendado, gratuito)
+- **Netlify** (gratuito)
+- **Vercel** (gratuito)
+- **Cualquier servidor web estático**
+
+## 📄 Licencia
+
+Uso libre para propósitos personales y familiares.
+
+## 🙋 Preguntas Frecuentes
+
+**¿Necesito un servidor?**
+No, funciona 100% en el navegador con localStorage.
+
+**¿Los datos se sincronizan entre dispositivos?**
+No, cada navegador tiene sus propios datos. Para compartir, todos deben usar el mismo dispositivo.
+
+**¿Puedo modificar la aplicación?**
+Sí, es código abierto. Modifica `index.html` como necesites.
+
+**¿Qué pasa si pierdo mis datos?**
+Los datos están en localStorage. Si limpias el caché, se pierden. Haz backup regularmente.
 
 ---
 
-## 🔒 Seguridad implementada
+**¿Necesitas ayuda?** Ver [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) para la guía completa.
 
-### Frontend (standalone):
-- Contraseñas hasheadas con **SHA-256 + salt** antes de guardar en localStorage
-- Nunca se almacena la contraseña en texto plano
-- Validación de roles en cada acción
-
-### Backend Java:
-- Contraseñas con **BCrypt** (12 rounds) — estándar de la industria
-- **JWT stateless** — sin sesiones en servidor
-- **Spring Security** con roles ADMIN / USER
-- `@PreAuthorize("hasRole('ADMIN')")` en endpoints sensibles
-- Validación con Bean Validation (`@NotBlank`, `@Min`, `@Pattern`)
-- CORS configurado por dominio
-- Audit trail de todas las transacciones de puntos
-
----
-
-## 📊 Estructura de Datos (localStorage)
-
-```json
-// mw26_users
-[{
-  "id": "1748000000000",
-  "name": "Juanito Pérez",
-  "username": "juanito",
-  "passwordHash": "sha256_hash_here",
-  "isAdmin": true,
-  "createdAt": "2026-05-16T10:00:00Z"
-}]
-
-// mw26_matches
-[{
-  "id": "1748000001000",
-  "home": "Colombia",
-  "away": "Ecuador",
-  "date": "2026-06-12",
-  "time": "18:00",
-  "stage": "Grupos",
-  "group": "C",
-  "status": "finished",
-  "scoreHome": 2,
-  "scoreAway": 1
-}]
-
-// mw26_predictions
-{
-  "1748000001000": {
-    "juanito": { "home": 2, "away": 1, "points": 5, "exact": true },
-    "maria":   { "home": 1, "away": 0, "points": 3, "exact": false }
-  }
-}
-
-// mw26_scores
-{ "juanito": 47, "maria": 31, "carlos": 28 }
-```
-
----
-
-## 🏗️ Cómo usar la aplicación
-
-### Para el Administrador:
-1. Regístrate primero (el primer usuario registrado es admin automáticamente)
-2. Ve a **⚙️ Administrar** → Agrega los partidos del Mundial
-3. Comparte la URL con la familia
-4. Cuando termine cada partido → Registrar Resultado → ¡Los puntos se calculan solos!
-
-### Para los Participantes:
-1. Regístrate con nombre y usuario
-2. Ve a **📋 Mis predicciones** antes de cada partido
-3. Introduce el marcador que predices y guarda
-4. Sigue la **🏆 Clasificación** en tiempo real
-
----
-
-## 📅 Partidos del Mundial 2026
-
-El torneo se jugará en **Estados Unidos, México y Canadá** con **48 selecciones**.
-Fases: Grupos (108 partidos) → Octavos → Cuartos → Semis → Final.
-
-El administrador carga los partidos manualmente desde el panel de administración.
-
----
-
-## 🔧 Personalización
-
-- **Cambiar puntuación:** Edita las constantes en `ScoreService.java`:
-  ```java
-  public static final int POINTS_EXACT_SCORE    = 5;
-  public static final int POINTS_CORRECT_OUTCOME = 3;
-  ```
-  O en el frontend (función `registerResult()`): `pts = 5` y `pts = 3`.
-
-- **Agregar más roles:** Extiende el enum y la lógica en `SecurityConfig.java`.
-
-- **Predicción del ganador del torneo:** Agrega un campo extra al modelo `User`.
+¡Que disfrutes la Polla Mundial 2026! ⚽🏆
