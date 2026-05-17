@@ -916,10 +916,36 @@
     ];
 
     function initializeMatches() {
-      const stored = localStorage.getItem(STORAGE_KEYS.matches);
-      if (!stored || JSON.parse(stored).length === 0) {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEYS.matches);
+        const parsedMatches = stored ? JSON.parse(stored) : [];
+        
+        // Si no hay partidos o la lista está vacía, cargar los del Mundial 2026
+        if (!parsedMatches || parsedMatches.length === 0) {
+          const matches = WORLD_CUP_2026_MATCHES.map((m, idx) => ({
+            id: 'match_' + idx + '_' + Date.now(),
+            home: m.home,
+            away: m.away,
+            date: m.date,
+            time: m.time,
+            stage: m.stage,
+            group: m.group,
+            status: 'pending',
+            scoreHome: null,
+            scoreAway: null,
+            deadline: null,
+            locked: false,
+            createdAt: new Date().toISOString()
+          }));
+          localStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(matches));
+          console.log('✅ Partidos del Mundial 2026 cargados: ' + matches.length + ' partidos');
+        }
+      } catch (e) {
+        console.error('Error inicializando partidos:', e);
+        // Si hay error, limpiar y reintentar
+        localStorage.removeItem(STORAGE_KEYS.matches);
         const matches = WORLD_CUP_2026_MATCHES.map((m, idx) => ({
-          id: (Date.now() + idx).toString(),
+          id: 'match_' + idx + '_' + Date.now(),
           home: m.home,
           away: m.away,
           date: m.date,
@@ -938,7 +964,9 @@
     }
 
     function init() {
+      // Cargar partidos PRIMERO antes de cualquier otra cosa
       initializeMatches();
+      
       loadCurrentUser();
       if (currentUser) {
         showAppScreen();
@@ -1116,9 +1144,17 @@
     }
 
     function loadAllData() {
-      allMatches = JSON.parse(localStorage.getItem(STORAGE_KEYS.matches) || '[]');
-      allPredictions = JSON.parse(localStorage.getItem(STORAGE_KEYS.predictions) || '{}');
-      allScores = JSON.parse(localStorage.getItem(STORAGE_KEYS.scores) || '{}');
+      try {
+        allMatches = JSON.parse(localStorage.getItem(STORAGE_KEYS.matches) || '[]');
+        allPredictions = JSON.parse(localStorage.getItem(STORAGE_KEYS.predictions) || '{}');
+        allScores = JSON.parse(localStorage.getItem(STORAGE_KEYS.scores) || '{}');
+        console.log('✅ Datos cargados: ' + allMatches.length + ' partidos');
+      } catch (e) {
+        console.error('Error cargando datos:', e);
+        allMatches = [];
+        allPredictions = {};
+        allScores = {};
+      }
     }
 
     function saveMatches() {
@@ -1384,13 +1420,14 @@
       
       if (filterGroup && filterGroup.innerHTML === '') {
         filterGroup.innerHTML = stages.map(stage => `
-          <button class="filter-btn ${stage === 'Grupos' ? 'active' : ''}" onclick="filterMatches('${stage}')">
+          <button class="filter-btn ${stage === 'Grupos' ? 'active' : ''}" data-stage="${stage}" onclick="filterMatches('${stage}')">
             ${stage}
           </button>
         `).join('');
       }
 
-      const currentFilter = document.querySelector('.filter-btn.active')?.textContent || 'Grupos';
+      const activeBtn = document.querySelector('#all-matches-tab .filter-btn.active');
+      const currentFilter = activeBtn ? activeBtn.getAttribute('data-stage') : 'Grupos';
       const filteredMatches = allMatches.filter(m => m.stage === currentFilter);
 
       const html = filteredMatches.map(match => {
@@ -1456,13 +1493,14 @@
       
       if (adminFilterGroup && adminFilterGroup.innerHTML === '') {
         adminFilterGroup.innerHTML = stages.map(stage => `
-          <button class="filter-btn ${stage === 'Grupos' ? 'active' : ''}" onclick="filterAdminMatches('${stage}')">
+          <button class="filter-btn ${stage === 'Grupos' ? 'active' : ''}" data-stage="${stage}" onclick="filterAdminMatches('${stage}')">
             ${stage}
           </button>
         `).join('');
       }
 
-      const currentFilter = document.querySelector('#admin-tab-content .filter-btn.active')?.textContent || 'Grupos';
+      const activeBtn = document.querySelector('#admin-tab-content .filter-btn.active');
+      const currentFilter = activeBtn ? activeBtn.getAttribute('data-stage') : 'Grupos';
       const filteredMatches = allMatches.filter(m => m.stage === currentFilter);
 
       const html = filteredMatches.map(match => {
