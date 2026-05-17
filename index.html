@@ -623,6 +623,7 @@
       <div class="auth-tabs">
         <button class="auth-tab active" onclick="switchAuthTab('login')">Iniciar Sesión</button>
         <button class="auth-tab" onclick="switchAuthTab('register')">Registrarse</button>
+        <button class="auth-tab" onclick="switchAuthTab('forgot')">Olvidé Contraseña</button>
       </div>
 
       <div id="login-form" class="card">
@@ -635,6 +636,9 @@
           <input type="password" id="login-password" placeholder="Tu contraseña">
         </div>
         <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="handleLogin()">Iniciar Sesión</button>
+        <div style="text-align: center; margin-top: 1rem;">
+          <button class="btn btn-ghost btn-sm" onclick="switchAuthTab('forgot')">¿Olvidé mi contraseña?</button>
+        </div>
         <div class="error-msg" id="login-error"></div>
       </div>
 
@@ -655,8 +659,39 @@
           <label>Confirmar Contraseña</label>
           <input type="password" id="register-password-confirm" placeholder="Repite la contraseña">
         </div>
+        <div class="form-group">
+          <label>¿Quieres ser Administrador?</label>
+          <select id="register-admin-select" onchange="toggleAdminPassword()">
+            <option value="no">No, solo usuario</option>
+            <option value="yes">Sí, quiero ser admin</option>
+          </select>
+        </div>
+        <div class="form-group hidden" id="admin-password-group">
+          <label>Contraseña de Administrador</label>
+          <input type="password" id="register-admin-password" placeholder="Ingresa la contraseña de admin">
+        </div>
         <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="handleRegister()">Registrarse</button>
         <div class="error-msg" id="register-error"></div>
+      </div>
+
+      <div id="forgot-form" class="card hidden">
+        <div class="form-group">
+          <label>Usuario</label>
+          <input type="text" id="forgot-username" placeholder="Tu usuario">
+        </div>
+        <div class="form-group">
+          <label>Nueva Contraseña</label>
+          <input type="password" id="forgot-new-password" placeholder="Nueva contraseña">
+        </div>
+        <div class="form-group">
+          <label>Confirmar Nueva Contraseña</label>
+          <input type="password" id="forgot-new-password-confirm" placeholder="Confirma la contraseña">
+        </div>
+        <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="handleForgotPassword()">Cambiar Contraseña</button>
+        <div style="text-align: center; margin-top: 1rem;">
+          <button class="btn btn-ghost btn-sm" onclick="switchAuthTab('login')">Volver al Login</button>
+        </div>
+        <div class="error-msg" id="forgot-error"></div>
       </div>
     </div>
   </div>
@@ -982,16 +1017,32 @@
       }
     }
 
+    // Contraseña de admin (configurable)
+    const ADMIN_PASSWORD = 'admin2026';
+
     function switchAuthTab(tab) {
       document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.auth-tab').forEach(t => {
         if ((tab === 'login' && t.textContent.includes('Iniciar')) || 
-            (tab === 'register' && t.textContent.includes('Registrarse'))) {
+            (tab === 'register' && t.textContent.includes('Registrarse')) ||
+            (tab === 'forgot' && t.textContent.includes('Olvid'))) {
           t.classList.add('active');
         }
       });
       document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
       document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+      document.getElementById('forgot-form').classList.toggle('hidden', tab !== 'forgot');
+    }
+
+    function toggleAdminPassword() {
+      const select = document.getElementById('register-admin-select');
+      const adminGroup = document.getElementById('admin-password-group');
+      if (select.value === 'yes') {
+        adminGroup.classList.remove('hidden');
+      } else {
+        adminGroup.classList.add('hidden');
+        document.getElementById('register-admin-password').value = '';
+      }
     }
 
     function hashPassword(password) {
@@ -1004,6 +1055,8 @@
       const username = document.getElementById('register-username').value.trim();
       const password = document.getElementById('register-password').value;
       const confirmPassword = document.getElementById('register-password-confirm').value;
+      const adminSelect = document.getElementById('register-admin-select').value;
+      const adminPassword = document.getElementById('register-admin-password').value;
       const errorEl = document.getElementById('register-error');
 
       errorEl.style.display = 'none';
@@ -1026,6 +1079,22 @@
         return;
       }
 
+      // Verificar contraseña de admin si se selecciona
+      let isAdmin = false;
+      if (adminSelect === 'yes') {
+        if (!adminPassword) {
+          errorEl.textContent = 'Debes ingresar la contraseña de administrador';
+          errorEl.style.display = 'block';
+          return;
+        }
+        if (adminPassword !== ADMIN_PASSWORD) {
+          errorEl.textContent = 'Contraseña de administrador incorrecta';
+          errorEl.style.display = 'block';
+          return;
+        }
+        isAdmin = true;
+      }
+
       const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.users) || '[]');
       if (users.some(u => u.username === username)) {
         errorEl.textContent = 'El usuario ya existe';
@@ -1038,7 +1107,7 @@
         name,
         username,
         passwordHash: hashPassword(password),
-        isAdmin: users.length === 0,
+        isAdmin: isAdmin,
         createdAt: new Date().toISOString()
       };
 
@@ -1089,12 +1158,68 @@
       renderAdminPanel();
     }
 
+    function handleForgotPassword() {
+      const username = document.getElementById('forgot-username').value.trim();
+      const newPassword = document.getElementById('forgot-new-password').value;
+      const confirmPassword = document.getElementById('forgot-new-password-confirm').value;
+      const errorEl = document.getElementById('forgot-error');
+
+      errorEl.style.display = 'none';
+
+      if (!username || !newPassword || !confirmPassword) {
+        errorEl.textContent = 'Todos los campos son requeridos';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        errorEl.textContent = 'Las contraseñas no coinciden';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        errorEl.textContent = 'La contraseña debe tener al menos 6 caracteres';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.users) || '[]');
+      const user = users.find(u => u.username === username);
+
+      if (!user) {
+        errorEl.textContent = 'El usuario no existe';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      // Actualizar contraseña
+      user.passwordHash = hashPassword(newPassword);
+      localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(users));
+
+      // Mostrar éxito y volver a login
+      alert('✅ Contraseña actualizada correctamente. Por favor, inicia sesión.');
+      switchAuthTab('login');
+      document.getElementById('login-username').value = username;
+      document.getElementById('login-password').value = '';
+      document.getElementById('forgot-username').value = '';
+      document.getElementById('forgot-new-password').value = '';
+      document.getElementById('forgot-new-password-confirm').value = '';
+    }
+
     function handleLogout() {
       currentUser = null;
       localStorage.removeItem(STORAGE_KEYS.currentUser);
       showAuthScreen();
       document.getElementById('login-username').value = '';
       document.getElementById('login-password').value = '';
+      document.getElementById('register-name').value = '';
+      document.getElementById('register-username').value = '';
+      document.getElementById('register-password').value = '';
+      document.getElementById('register-password-confirm').value = '';
+      document.getElementById('register-admin-select').value = 'no';
+      document.getElementById('admin-password-group').classList.add('hidden');
+      document.getElementById('register-admin-password').value = '';
     }
 
     function showAuthScreen() {
