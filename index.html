@@ -47,7 +47,6 @@
       z-index: 0;
     }
 
-    /* HEADER */
     header {
       position: sticky;
       top: 0;
@@ -101,7 +100,6 @@
       letter-spacing: 0.5px;
     }
 
-    /* BUTTONS */
     .btn {
       display: inline-flex;
       align-items: center;
@@ -146,11 +144,9 @@
     .btn-sm { padding: 5px 12px; font-size: 0.8rem; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
 
-    /* LAYOUT */
     .app { position: relative; z-index: 1; }
     .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
 
-    /* NAV TABS */
     .nav-tabs {
       display: flex;
       gap: 4px;
@@ -184,9 +180,6 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
 
-    .nav-tab:hover:not(.active) { color: var(--text); }
-
-    /* CARD */
     .card {
       background: var(--card);
       border: 1px solid var(--card-border);
@@ -205,7 +198,6 @@
       gap: 10px;
     }
 
-    /* AUTH SCREEN */
     #auth-screen {
       min-height: 100vh;
       display: flex;
@@ -270,7 +262,6 @@
       color: var(--text);
     }
 
-    /* FORM */
     .form-group { margin-bottom: 1rem; }
 
     label {
@@ -302,26 +293,19 @@
     }
 
     input::placeholder { color: var(--muted); }
-
     select option { background: var(--navy-mid); }
 
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
-    .error-msg {
-      color: var(--red);
+    .error-msg, .success-msg {
       font-size: 0.8rem;
       margin-top: 8px;
       display: none;
     }
 
-    .success-msg {
-      color: var(--green);
-      font-size: 0.8rem;
-      margin-top: 8px;
-      display: none;
-    }
+    .error-msg { color: var(--red); }
+    .success-msg { color: var(--green); }
 
-    /* LEADERBOARD */
     .leaderboard { display: flex; flex-direction: column; gap: 8px; }
 
     .lb-row {
@@ -338,7 +322,6 @@
     }
 
     .lb-row:hover { border-color: rgba(255,255,255,0.15); }
-
     .lb-row.rank-1 { border-color: rgba(255,214,0,0.35); background: rgba(255,214,0,0.05); }
     .lb-row.rank-2 { border-color: rgba(192,192,192,0.3); }
     .lb-row.rank-3 { border-color: rgba(205,127,50,0.3); }
@@ -381,13 +364,6 @@
       text-align: right;
     }
 
-    .lb-matches {
-      font-size: 0.78rem;
-      color: var(--muted);
-      text-align: right;
-    }
-
-    /* MATCHES LIST */
     .matches-grid {
       display: flex;
       flex-direction: column;
@@ -399,11 +375,11 @@
       border: 1px solid var(--card-border);
       border-radius: var(--radius);
       padding: 1rem 1.25rem;
-      transition: border-color 0.18s;
+      transition: all 0.18s;
     }
 
     .match-card:hover { border-color: rgba(255,255,255,0.12); }
-    .match-card.locked { opacity: 0.6; }
+    .match-card.locked { opacity: 0.6; border-color: rgba(255,214,0,0.3); }
 
     .match-header {
       display: flex;
@@ -434,11 +410,7 @@
       margin-bottom: 0.875rem;
     }
 
-    .team-name {
-      font-weight: 500;
-      font-size: 0.95rem;
-    }
-
+    .team-name { font-weight: 500; font-size: 0.95rem; }
     .team-home { text-align: right; }
     .team-away { text-align: left; }
 
@@ -457,13 +429,8 @@
       font-family: 'DM Mono', monospace !important;
     }
 
-    .score-sep {
-      color: var(--muted);
-      font-size: 1.2rem;
-      font-weight: 300;
-    }
+    .score-sep { color: var(--muted); font-size: 1.2rem; font-weight: 300; }
 
-    /* STATUS BADGES */
     .status-badge {
       display: inline-flex;
       align-items: center;
@@ -481,7 +448,6 @@
 
     @keyframes pulse { 0%,100%{ opacity:1 } 50%{ opacity:0.6 } }
 
-    /* PREDICTION RESULT */
     .pred-result {
       display: inline-flex;
       align-items: center;
@@ -496,28 +462,23 @@
     .pred-correct { background: rgba(0,200,83,0.12); color: var(--green); border: 1px solid rgba(0,200,83,0.2); }
     .pred-wrong { background: rgba(255,23,68,0.1); color: var(--red); border: 1px solid rgba(255,23,68,0.2); }
 
-    /* COUNTDOWN */
     .countdown {
       font-family: 'DM Mono', monospace;
       font-size: 0.85rem;
       color: var(--green);
       font-weight: 500;
+      margin-top: 0.5rem;
     }
 
-    .countdown.expired {
-      color: var(--gold);
-    }
+    .countdown.expired { color: var(--gold); }
 
-    /* HIDDEN */
     .hidden { display: none !important; }
 
-    /* ANIMATIONS */
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* RESPONSIVE */
     @media (max-width: 768px) {
       header { padding: 0 1rem; }
       .logo { font-size: 1.2rem; }
@@ -527,10 +488,8 @@
       .nav-tab { min-width: auto; }
       .match-teams { grid-template-columns: 1fr auto 1fr; }
       .lb-row { grid-template-columns: 40px 1fr auto; }
-      .lb-matches { display: none; }
     }
 
-    /* ADMIN PANEL */
     .admin-section {
       background: rgba(255,214,0,0.05);
       border: 1px solid rgba(255,214,0,0.2);
@@ -539,9 +498,7 @@
       margin-bottom: 2rem;
     }
 
-    .admin-section .card-title {
-      color: var(--gold);
-    }
+    .admin-section .card-title { color: var(--gold); }
 
     .match-actions {
       display: flex;
@@ -598,7 +555,6 @@
 
     .close-btn:hover { color: var(--text); }
 
-    /* STATS GRID */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -628,6 +584,32 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+
+    .filter-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--card-border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.18s;
+    }
+
+    .filter-btn.active {
+      background: var(--green);
+      color: #fff;
+      border-color: var(--green);
+    }
+
+    .filter-btn:hover { border-color: var(--green); color: var(--text); }
   </style>
 </head>
 <body>
@@ -643,7 +625,6 @@
         <button class="auth-tab" onclick="switchAuthTab('register')">Registrarse</button>
       </div>
 
-      <!-- LOGIN -->
       <div id="login-form" class="card">
         <div class="form-group">
           <label>Usuario</label>
@@ -657,7 +638,6 @@
         <div class="error-msg" id="login-error"></div>
       </div>
 
-      <!-- REGISTER -->
       <div id="register-form" class="card hidden">
         <div class="form-group">
           <label>Nombre Completo</label>
@@ -702,7 +682,6 @@
         <button class="nav-tab hidden" id="admin-tab" onclick="switchTab('admin')">⚙️ Administrar</button>
       </div>
 
-      <!-- LEADERBOARD TAB -->
       <div id="leaderboard-tab" class="tab-content">
         <div class="card">
           <div class="card-title">🏆 Clasificación General</div>
@@ -724,7 +703,6 @@
         </div>
       </div>
 
-      <!-- MY PREDICTIONS TAB -->
       <div id="matches-tab" class="tab-content hidden">
         <div class="card">
           <div class="card-title">📋 Mis Predicciones</div>
@@ -732,81 +710,25 @@
         </div>
       </div>
 
-      <!-- ALL MATCHES TAB -->
       <div id="all-matches-tab" class="tab-content hidden">
         <div class="card">
           <div class="card-title">⚽ Todos los Partidos</div>
+          <div class="filter-group" id="filter-group"></div>
           <div class="matches-grid" id="all-matches-list"></div>
         </div>
       </div>
 
-      <!-- ADMIN TAB -->
       <div id="admin-tab-content" class="tab-content hidden">
         <div class="admin-section">
           <div class="card-title">⚙️ Panel de Administración</div>
 
-          <!-- ADD MATCH -->
           <div style="margin-bottom: 2rem;">
-            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text);">Agregar Partido</h3>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Equipo Local</label>
-                <input type="text" id="admin-home-team" placeholder="Ej: Colombia">
-              </div>
-              <div class="form-group">
-                <label>Equipo Visitante</label>
-                <input type="text" id="admin-away-team" placeholder="Ej: Argentina">
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Fecha</label>
-                <input type="date" id="admin-match-date">
-              </div>
-              <div class="form-group">
-                <label>Hora</label>
-                <input type="time" id="admin-match-time">
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Fase</label>
-                <select id="admin-match-stage">
-                  <option value="Grupos">Grupos</option>
-                  <option value="Octavos">Octavos de Final</option>
-                  <option value="Cuartos">Cuartos de Final</option>
-                  <option value="Semis">Semifinal</option>
-                  <option value="Final">Final</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Grupo (si aplica)</label>
-                <input type="text" id="admin-match-group" placeholder="Ej: A">
-              </div>
-            </div>
-            <button class="btn btn-gold" style="width: 100%; justify-content: center;" onclick="handleAddMatch()">Agregar Partido</button>
-            <div class="success-msg" id="add-match-success"></div>
-            <div class="error-msg" id="add-match-error"></div>
-          </div>
-
-          <!-- MANAGE MATCHES -->
-          <div>
-            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text);">Gestionar Partidos</h3>
+            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text);">Establecer Deadlines</h3>
+            <div class="filter-group" id="admin-filter-group"></div>
             <div class="matches-grid" id="admin-matches-list"></div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- MODALS -->
-  <div id="match-detail-modal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 id="modal-title">Detalles del Partido</h2>
-        <button class="close-btn" onclick="closeModal('match-detail-modal')">&times;</button>
-      </div>
-      <div id="modal-body"></div>
     </div>
   </div>
 
@@ -845,7 +767,6 @@
   </div>
 
   <script>
-    // ===== CONFIGURATION =====
     const STORAGE_KEYS = {
       users: 'mw26_users',
       matches: 'mw26_matches',
@@ -859,14 +780,165 @@
       CORRECT_OUTCOME: 3
     };
 
-    // ===== STATE =====
     let currentUser = null;
     let allMatches = [];
     let allPredictions = {};
     let allScores = {};
 
-    // ===== INITIALIZATION =====
+    // DATOS DEL MUNDIAL 2026
+    const WORLD_CUP_2026_MATCHES = [
+      // GRUPO A
+      { home: "México", away: "Canadá", date: "2026-06-12", time: "18:00", stage: "Grupos", group: "A" },
+      { home: "Uruguay", away: "Panamá", date: "2026-06-12", time: "20:30", stage: "Grupos", group: "A" },
+      { home: "México", away: "Uruguay", date: "2026-06-17", time: "18:00", stage: "Grupos", group: "A" },
+      { home: "Panamá", away: "Canadá", date: "2026-06-17", time: "20:30", stage: "Grupos", group: "A" },
+      { home: "Canadá", away: "Uruguay", date: "2026-06-22", time: "18:00", stage: "Grupos", group: "A" },
+      { home: "Panamá", away: "México", date: "2026-06-22", time: "18:00", stage: "Grupos", group: "A" },
+
+      // GRUPO B
+      { home: "España", away: "Costa Rica", date: "2026-06-13", time: "18:00", stage: "Grupos", group: "B" },
+      { home: "Alemania", away: "Japón", date: "2026-06-13", time: "20:30", stage: "Grupos", group: "B" },
+      { home: "España", away: "Alemania", date: "2026-06-18", time: "18:00", stage: "Grupos", group: "B" },
+      { home: "Japón", away: "Costa Rica", date: "2026-06-18", time: "20:30", stage: "Grupos", group: "B" },
+      { home: "Costa Rica", away: "Alemania", date: "2026-06-23", time: "18:00", stage: "Grupos", group: "B" },
+      { home: "Japón", away: "España", date: "2026-06-23", time: "18:00", stage: "Grupos", group: "B" },
+
+      // GRUPO C
+      { home: "Argentina", away: "Marruecos", date: "2026-06-13", time: "18:00", stage: "Grupos", group: "C" },
+      { home: "Polonia", away: "Arabia Saudita", date: "2026-06-13", time: "20:30", stage: "Grupos", group: "C" },
+      { home: "Argentina", away: "Polonia", date: "2026-06-18", time: "18:00", stage: "Grupos", group: "C" },
+      { home: "Arabia Saudita", away: "Marruecos", date: "2026-06-18", time: "20:30", stage: "Grupos", group: "C" },
+      { home: "Marruecos", away: "Polonia", date: "2026-06-23", time: "18:00", stage: "Grupos", group: "C" },
+      { home: "Arabia Saudita", away: "Argentina", date: "2026-06-23", time: "18:00", stage: "Grupos", group: "C" },
+
+      // GRUPO D
+      { home: "Francia", away: "Países Bajos", date: "2026-06-14", time: "18:00", stage: "Grupos", group: "D" },
+      { home: "Dinamarca", away: "Túnez", date: "2026-06-14", time: "20:30", stage: "Grupos", group: "D" },
+      { home: "Francia", away: "Dinamarca", date: "2026-06-19", time: "18:00", stage: "Grupos", group: "D" },
+      { home: "Túnez", away: "Países Bajos", date: "2026-06-19", time: "20:30", stage: "Grupos", group: "D" },
+      { home: "Países Bajos", away: "Dinamarca", date: "2026-06-24", time: "18:00", stage: "Grupos", group: "D" },
+      { home: "Túnez", away: "Francia", date: "2026-06-24", time: "18:00", stage: "Grupos", group: "D" },
+
+      // GRUPO E
+      { home: "Brasil", away: "Serbia", date: "2026-06-14", time: "18:00", stage: "Grupos", group: "E" },
+      { home: "Suiza", away: "Camerún", date: "2026-06-14", time: "20:30", stage: "Grupos", group: "E" },
+      { home: "Brasil", away: "Suiza", date: "2026-06-19", time: "18:00", stage: "Grupos", group: "E" },
+      { home: "Camerún", away: "Serbia", date: "2026-06-19", time: "20:30", stage: "Grupos", group: "E" },
+      { home: "Serbia", away: "Suiza", date: "2026-06-24", time: "18:00", stage: "Grupos", group: "E" },
+      { home: "Camerún", away: "Brasil", date: "2026-06-24", time: "18:00", stage: "Grupos", group: "E" },
+
+      // GRUPO F
+      { home: "Bélgica", away: "Canadá", date: "2026-06-15", time: "18:00", stage: "Grupos", group: "F" },
+      { home: "Marruecos", away: "Croacia", date: "2026-06-15", time: "20:30", stage: "Grupos", group: "F" },
+      { home: "Bélgica", away: "Marruecos", date: "2026-06-20", time: "18:00", stage: "Grupos", group: "F" },
+      { home: "Croacia", away: "Canadá", date: "2026-06-20", time: "20:30", stage: "Grupos", group: "F" },
+      { home: "Canadá", away: "Marruecos", date: "2026-06-25", time: "18:00", stage: "Grupos", group: "F" },
+      { home: "Croacia", away: "Bélgica", date: "2026-06-25", time: "18:00", stage: "Grupos", group: "F" },
+
+      // GRUPO G
+      { home: "Portugal", away: "Ghana", date: "2026-06-15", time: "18:00", stage: "Grupos", group: "G" },
+      { home: "Uruguay", away: "Corea del Sur", date: "2026-06-15", time: "20:30", stage: "Grupos", group: "G" },
+      { home: "Portugal", away: "Uruguay", date: "2026-06-20", time: "18:00", stage: "Grupos", group: "G" },
+      { home: "Corea del Sur", away: "Ghana", date: "2026-06-20", time: "20:30", stage: "Grupos", group: "G" },
+      { home: "Ghana", away: "Uruguay", date: "2026-06-25", time: "18:00", stage: "Grupos", group: "G" },
+      { home: "Corea del Sur", away: "Portugal", date: "2026-06-25", time: "18:00", stage: "Grupos", group: "G" },
+
+      // GRUPO H
+      { home: "Italia", away: "Bolivia", date: "2026-06-16", time: "18:00", stage: "Grupos", group: "H" },
+      { home: "Noruega", away: "Eslovenia", date: "2026-06-16", time: "20:30", stage: "Grupos", group: "H" },
+      { home: "Italia", away: "Noruega", date: "2026-06-21", time: "18:00", stage: "Grupos", group: "H" },
+      { home: "Eslovenia", away: "Bolivia", date: "2026-06-21", time: "20:30", stage: "Grupos", group: "H" },
+      { home: "Bolivia", away: "Noruega", date: "2026-06-26", time: "18:00", stage: "Grupos", group: "H" },
+      { home: "Eslovenia", away: "Italia", date: "2026-06-26", time: "18:00", stage: "Grupos", group: "H" },
+
+      // GRUPO I
+      { home: "Colombia", away: "Grecia", date: "2026-06-16", time: "18:00", stage: "Grupos", group: "I" },
+      { home: "Perú", away: "Nueva Zelanda", date: "2026-06-16", time: "20:30", stage: "Grupos", group: "I" },
+      { home: "Colombia", away: "Perú", date: "2026-06-21", time: "18:00", stage: "Grupos", group: "I" },
+      { home: "Nueva Zelanda", away: "Grecia", date: "2026-06-21", time: "20:30", stage: "Grupos", group: "I" },
+      { home: "Grecia", away: "Perú", date: "2026-06-26", time: "18:00", stage: "Grupos", group: "I" },
+      { home: "Nueva Zelanda", away: "Colombia", date: "2026-06-26", time: "18:00", stage: "Grupos", group: "I" },
+
+      // GRUPO J
+      { home: "Suecia", away: "Nigeria", date: "2026-06-17", time: "18:00", stage: "Grupos", group: "J" },
+      { home: "Irlanda", away: "Kazajistán", date: "2026-06-17", time: "20:30", stage: "Grupos", group: "J" },
+      { home: "Suecia", away: "Irlanda", date: "2026-06-22", time: "18:00", stage: "Grupos", group: "J" },
+      { home: "Kazajistán", away: "Nigeria", date: "2026-06-22", time: "20:30", stage: "Grupos", group: "J" },
+      { home: "Nigeria", away: "Irlanda", date: "2026-06-27", time: "18:00", stage: "Grupos", group: "J" },
+      { home: "Kazajistán", away: "Suecia", date: "2026-06-27", time: "18:00", stage: "Grupos", group: "J" },
+
+      // GRUPO K
+      { home: "Países Bajos", away: "Senegal", date: "2026-06-17", time: "18:00", stage: "Grupos", group: "K" },
+      { home: "Ecuador", away: "Qatar", date: "2026-06-17", time: "20:30", stage: "Grupos", group: "K" },
+      { home: "Países Bajos", away: "Ecuador", date: "2026-06-22", time: "18:00", stage: "Grupos", group: "K" },
+      { home: "Qatar", away: "Senegal", date: "2026-06-22", time: "20:30", stage: "Grupos", group: "K" },
+      { home: "Senegal", away: "Ecuador", date: "2026-06-27", time: "18:00", stage: "Grupos", group: "K" },
+      { home: "Qatar", away: "Países Bajos", date: "2026-06-27", time: "18:00", stage: "Grupos", group: "K" },
+
+      // GRUPO L
+      { home: "Gales", away: "Irán", date: "2026-06-18", time: "18:00", stage: "Grupos", group: "L" },
+      { home: "Estados Unidos", away: "Escocia", date: "2026-06-18", time: "20:30", stage: "Grupos", group: "L" },
+      { home: "Gales", away: "Estados Unidos", date: "2026-06-23", time: "18:00", stage: "Grupos", group: "L" },
+      { home: "Escocia", away: "Irán", date: "2026-06-23", time: "20:30", stage: "Grupos", group: "L" },
+      { home: "Irán", away: "Estados Unidos", date: "2026-06-28", time: "18:00", stage: "Grupos", group: "L" },
+      { home: "Escocia", away: "Gales", date: "2026-06-28", time: "18:00", stage: "Grupos", group: "L" },
+
+      // OCTAVOS DE FINAL
+      { home: "1A", away: "2B", date: "2026-06-29", time: "18:00", stage: "Octavos", group: "" },
+      { home: "1B", away: "2A", date: "2026-06-29", time: "20:30", stage: "Octavos", group: "" },
+      { home: "1C", away: "2D", date: "2026-06-30", time: "18:00", stage: "Octavos", group: "" },
+      { home: "1D", away: "2C", date: "2026-06-30", time: "20:30", stage: "Octavos", group: "" },
+      { home: "1E", away: "2F", date: "2026-07-01", time: "18:00", stage: "Octavos", group: "" },
+      { home: "1F", away: "2E", date: "2026-07-01", time: "20:30", stage: "Octavos", group: "" },
+      { home: "1G", away: "2H", date: "2026-07-02", time: "18:00", stage: "Octavos", group: "" },
+      { home: "1H", away: "2G", date: "2026-07-02", time: "20:30", stage: "Octavos", group: "" },
+      { home: "1I", away: "2J", date: "2026-07-03", time: "18:00", stage: "Octavos", group: "" },
+      { home: "1J", away: "2I", date: "2026-07-03", time: "20:30", stage: "Octavos", group: "" },
+      { home: "1K", away: "2L", date: "2026-07-04", time: "18:00", stage: "Octavos", group: "" },
+      { home: "1L", away: "2K", date: "2026-07-04", time: "20:30", stage: "Octavos", group: "" },
+      { home: "Ganador O1", away: "Ganador O2", date: "2026-07-05", time: "18:00", stage: "Octavos", group: "" },
+      { home: "Ganador O3", away: "Ganador O4", date: "2026-07-05", time: "20:30", stage: "Octavos", group: "" },
+      { home: "Ganador O5", away: "Ganador O6", date: "2026-07-06", time: "18:00", stage: "Octavos", group: "" },
+      { home: "Ganador O7", away: "Ganador O8", date: "2026-07-06", time: "20:30", stage: "Octavos", group: "" },
+
+      // CUARTOS DE FINAL
+      { home: "Ganador C1", away: "Ganador C2", date: "2026-07-09", time: "18:00", stage: "Cuartos", group: "" },
+      { home: "Ganador C3", away: "Ganador C4", date: "2026-07-09", time: "20:30", stage: "Cuartos", group: "" },
+      { home: "Ganador C5", away: "Ganador C6", date: "2026-07-10", time: "18:00", stage: "Cuartos", group: "" },
+      { home: "Ganador C7", away: "Ganador C8", date: "2026-07-10", time: "20:30", stage: "Cuartos", group: "" },
+
+      // SEMIFINALES
+      { home: "Ganador S1", away: "Ganador S2", date: "2026-07-15", time: "18:00", stage: "Semis", group: "" },
+      { home: "Ganador S3", away: "Ganador S4", date: "2026-07-15", time: "20:30", stage: "Semis", group: "" },
+
+      // FINAL
+      { home: "Ganador Final 1", away: "Ganador Final 2", date: "2026-07-19", time: "18:00", stage: "Final", group: "" }
+    ];
+
+    function initializeMatches() {
+      const stored = localStorage.getItem(STORAGE_KEYS.matches);
+      if (!stored || JSON.parse(stored).length === 0) {
+        const matches = WORLD_CUP_2026_MATCHES.map((m, idx) => ({
+          id: (Date.now() + idx).toString(),
+          home: m.home,
+          away: m.away,
+          date: m.date,
+          time: m.time,
+          stage: m.stage,
+          group: m.group,
+          status: 'pending',
+          scoreHome: null,
+          scoreAway: null,
+          deadline: null,
+          locked: false,
+          createdAt: new Date().toISOString()
+        }));
+        localStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(matches));
+      }
+    }
+
     function init() {
+      initializeMatches();
       loadCurrentUser();
       if (currentUser) {
         showAppScreen();
@@ -882,7 +954,6 @@
       }
     }
 
-    // ===== AUTH FUNCTIONS =====
     function switchAuthTab(tab) {
       document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.auth-tab').forEach(t => {
@@ -891,7 +962,6 @@
           t.classList.add('active');
         }
       });
-
       document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
       document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
     }
@@ -997,13 +1067,8 @@
       showAuthScreen();
       document.getElementById('login-username').value = '';
       document.getElementById('login-password').value = '';
-      document.getElementById('register-name').value = '';
-      document.getElementById('register-username').value = '';
-      document.getElementById('register-password').value = '';
-      document.getElementById('register-password-confirm').value = '';
     }
 
-    // ===== UI FUNCTIONS =====
     function showAuthScreen() {
       document.getElementById('auth-screen').classList.remove('hidden');
       document.getElementById('app-screen').classList.add('hidden');
@@ -1050,7 +1115,6 @@
       }
     }
 
-    // ===== DATA MANAGEMENT =====
     function loadAllData() {
       allMatches = JSON.parse(localStorage.getItem(STORAGE_KEYS.matches) || '[]');
       allPredictions = JSON.parse(localStorage.getItem(STORAGE_KEYS.predictions) || '{}');
@@ -1067,61 +1131,6 @@
 
     function saveScores() {
       localStorage.setItem(STORAGE_KEYS.scores, JSON.stringify(allScores));
-    }
-
-    // ===== MATCH FUNCTIONS =====
-    function handleAddMatch() {
-      if (!currentUser.isAdmin) return;
-
-      const homeTeam = document.getElementById('admin-home-team').value.trim();
-      const awayTeam = document.getElementById('admin-away-team').value.trim();
-      const date = document.getElementById('admin-match-date').value;
-      const time = document.getElementById('admin-match-time').value;
-      const stage = document.getElementById('admin-match-stage').value;
-      const group = document.getElementById('admin-match-group').value.trim();
-
-      const errorEl = document.getElementById('add-match-error');
-      const successEl = document.getElementById('add-match-success');
-
-      errorEl.style.display = 'none';
-      successEl.style.display = 'none';
-
-      if (!homeTeam || !awayTeam || !date || !time) {
-        errorEl.textContent = 'Todos los campos son requeridos';
-        errorEl.style.display = 'block';
-        return;
-      }
-
-      const newMatch = {
-        id: Date.now().toString(),
-        home: homeTeam,
-        away: awayTeam,
-        date,
-        time,
-        stage,
-        group: group || '',
-        status: 'pending',
-        scoreHome: null,
-        scoreAway: null,
-        deadline: null,
-        locked: false,
-        createdAt: new Date().toISOString()
-      };
-
-      allMatches.push(newMatch);
-      saveMatches();
-
-      successEl.textContent = 'Partido agregado exitosamente';
-      successEl.style.display = 'block';
-
-      document.getElementById('admin-home-team').value = '';
-      document.getElementById('admin-away-team').value = '';
-      document.getElementById('admin-match-date').value = '';
-      document.getElementById('admin-match-time').value = '';
-      document.getElementById('admin-match-group').value = '';
-
-      renderAdminPanel();
-      renderAllMatches();
     }
 
     function isMatchLocked(match) {
@@ -1161,7 +1170,6 @@
       return `${time.minutes}m ${time.seconds}s`;
     }
 
-    // ===== PREDICTION FUNCTIONS =====
     function savePrediction(matchId, homeScore, awayScore) {
       if (!allPredictions[matchId]) {
         allPredictions[matchId] = {};
@@ -1224,7 +1232,6 @@
       match.status = 'finished';
       saveMatches();
 
-      // Calculate points for all predictions
       if (allPredictions[matchId]) {
         Object.keys(allPredictions[matchId]).forEach(username => {
           const prediction = allPredictions[matchId][username];
@@ -1275,7 +1282,6 @@
       renderMyPredictions();
     }
 
-    // ===== RENDERING FUNCTIONS =====
     function renderLeaderboard() {
       const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.users) || '[]');
       const rankings = users.map(user => ({
@@ -1299,7 +1305,6 @@
             <div class="lb-avatar">${rank.name.charAt(0).toUpperCase()}</div>
             <span>${rank.name}</span>
           </div>
-          <div class="lb-matches">${finishedMatches} partidos</div>
           <div class="lb-pts">${rank.points}</div>
         </div>
       `).join('');
@@ -1359,7 +1364,7 @@
               </div>
               <div class="team-away team-name">${match.away}</div>
             </div>
-            ${time && !time.expired ? `<div class="countdown" style="font-size: 0.8rem; margin-top: 0.5rem;">Cierra en: ${formatCountdown(time)}</div>` : ''}
+            ${time && !time.expired ? `<div class="countdown">Cierra en: ${formatCountdown(time)}</div>` : ''}
             ${locked ? `<span class="status-badge status-locked">🔒 Cerrado</span>` : ''}
             ${predictionHtml}
           </div>
@@ -1369,8 +1374,26 @@
       document.getElementById('my-predictions-list').innerHTML = html || '<p style="color: var(--muted);">No hay predicciones aún</p>';
     }
 
+    function getUniqueStages() {
+      return [...new Set(allMatches.map(m => m.stage))].sort();
+    }
+
     function renderAllMatches() {
-      const html = allMatches.map(match => {
+      const stages = getUniqueStages();
+      const filterGroup = document.getElementById('filter-group');
+      
+      if (filterGroup && filterGroup.innerHTML === '') {
+        filterGroup.innerHTML = stages.map(stage => `
+          <button class="filter-btn ${stage === 'Grupos' ? 'active' : ''}" onclick="filterMatches('${stage}')">
+            ${stage}
+          </button>
+        `).join('');
+      }
+
+      const currentFilter = document.querySelector('.filter-btn.active')?.textContent || 'Grupos';
+      const filteredMatches = allMatches.filter(m => m.stage === currentFilter);
+
+      const html = filteredMatches.map(match => {
         const pred = getPrediction(match.id);
         const locked = isMatchLocked(match);
         const time = getTimeToDeadline(match);
@@ -1410,19 +1433,39 @@
               </div>
               <div class="team-away team-name">${match.away}</div>
             </div>
-            ${time && !time.expired ? `<div class="countdown" style="font-size: 0.8rem; margin-top: 0.5rem;">Cierra en: ${formatCountdown(time)}</div>` : ''}
+            ${time && !time.expired ? `<div class="countdown">Cierra en: ${formatCountdown(time)}</div>` : ''}
             ${locked ? `<span class="status-badge status-locked">🔒 Cerrado</span>` : ''}
           </div>
         `;
       }).join('');
 
-      document.getElementById('all-matches-list').innerHTML = html || '<p style="color: var(--muted);">No hay partidos aún</p>';
+      document.getElementById('all-matches-list').innerHTML = html || '<p style="color: var(--muted);">No hay partidos en esta fase</p>';
+    }
+
+    function filterMatches(stage) {
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      renderAllMatches();
     }
 
     function renderAdminPanel() {
       if (!currentUser.isAdmin) return;
 
-      const html = allMatches.map(match => {
+      const stages = getUniqueStages();
+      const adminFilterGroup = document.getElementById('admin-filter-group');
+      
+      if (adminFilterGroup && adminFilterGroup.innerHTML === '') {
+        adminFilterGroup.innerHTML = stages.map(stage => `
+          <button class="filter-btn ${stage === 'Grupos' ? 'active' : ''}" onclick="filterAdminMatches('${stage}')">
+            ${stage}
+          </button>
+        `).join('');
+      }
+
+      const currentFilter = document.querySelector('#admin-tab-content .filter-btn.active')?.textContent || 'Grupos';
+      const filteredMatches = allMatches.filter(m => m.stage === currentFilter);
+
+      const html = filteredMatches.map(match => {
         const time = getTimeToDeadline(match);
         const locked = isMatchLocked(match);
 
@@ -1442,20 +1485,25 @@
               </div>
               <div class="team-away team-name">${match.away}</div>
             </div>
-            ${time && !time.expired ? `<div class="countdown" style="font-size: 0.8rem; margin-top: 0.5rem;">Cierra en: ${formatCountdown(time)}</div>` : ''}
+            ${time && !time.expired ? `<div class="countdown">Cierra en: ${formatCountdown(time)}</div>` : ''}
             ${match.deadline ? `<div style="font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem;">Límite: ${new Date(match.deadline).toLocaleString()}</div>` : ''}
             <div class="match-actions">
               ${match.status !== 'finished' ? `
                 <button class="btn btn-gold btn-sm" onclick="openResultModal('${match.id}')">Registrar Resultado</button>
               ` : ''}
               <button class="btn btn-ghost btn-sm" onclick="openDeadlineModal('${match.id}')">Establecer Límite</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteMatch('${match.id}')">Eliminar</button>
             </div>
           </div>
         `;
       }).join('');
 
-      document.getElementById('admin-matches-list').innerHTML = html || '<p style="color: var(--muted);">No hay partidos aún</p>';
+      document.getElementById('admin-matches-list').innerHTML = html || '<p style="color: var(--muted);">No hay partidos en esta fase</p>';
+    }
+
+    function filterAdminMatches(stage) {
+      document.querySelectorAll('#admin-tab-content .filter-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      renderAdminPanel();
     }
 
     function savePredictionFromUI(matchId) {
@@ -1477,18 +1525,6 @@
       renderAllMatches();
       renderMyPredictions();
       alert('Predicción guardada');
-    }
-
-    function deleteMatch(matchId) {
-      if (!currentUser.isAdmin) return;
-      if (!confirm('¿Eliminar este partido?')) return;
-
-      allMatches = allMatches.filter(m => m.id !== matchId);
-      delete allPredictions[matchId];
-      saveMatches();
-      savePredictions();
-      renderAdminPanel();
-      renderAllMatches();
     }
 
     function openResultModal(matchId) {
@@ -1525,7 +1561,6 @@
       });
     }
 
-    // ===== START =====
     window.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
