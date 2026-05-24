@@ -686,6 +686,7 @@
           <option value="normal">Normal (sin bonus)</option>
           <option value="grey">Gris (+2 pts adicionales)</option>
           <option value="yellow">Amarillo (×2 pts)</option>
+          <option value="red">Rojo (×2 pts)</option>
         </select>
       </div>
     </div>
@@ -970,12 +971,22 @@ function computeMatchPoints(predHome, predAway, actualHome, actualAway, stage, m
   let base = 0;
   let isExact = false;
 
-  if (predHome === actualHome && predAway === actualAway) {
+  // Validar que los valores sean números
+  const pH = parseInt(predHome);
+  const pA = parseInt(predAway);
+  const aH = parseInt(actualHome);
+  const aA = parseInt(actualAway);
+
+  if (isNaN(pH) || isNaN(pA) || isNaN(aH) || isNaN(aA)) {
+    return { points: 0, label: 'wrong', base: 0 };
+  }
+
+  if (pH === aH && pA === aA) {
     base = pts.exact;
     isExact = true;
   } else {
-    const predWinner = Math.sign(predHome - predAway);
-    const actualWinner = Math.sign(actualHome - actualAway);
+    const predWinner = Math.sign(pH - pA);
+    const actualWinner = Math.sign(aH - aA);
     if (predWinner === actualWinner) base = pts.correct;
   }
 
@@ -985,20 +996,22 @@ function computeMatchPoints(predHome, predAway, actualHome, actualAway, stage, m
   let label = isExact ? 'exact' : 'correct';
   let bonusDesc = '';
 
-  // Color bonus rules
-  if (matchColor === 'grey') {
+  // Colombia bonus ALWAYS takes priority: exact score × 2 + 2
+  if (isColombia && isExact) {
+    final = base * 2 + 2;
+    bonusDesc = '🇨🇴 Colombia ×2+2';
+  }
+  // Color bonus rules (only if NOT Colombia)
+  else if (matchColor === 'grey') {
     final = base + 2;
-    bonusDesc = '+2 gris';
+    bonusDesc = '⬜ +2 gris';
   } else if (matchColor === 'yellow') {
     final = base * 2;
-    bonusDesc = '×2 amarillo';
-  }
-
-  // Colombia bonus: exact score × 2 + 2 (rojo)
-  if (isColombia && isExact) {
-    // Colombia matches: exact score gets ×2+2 ALWAYS regardless of match color
-    final = base * 2 + 2;
-    bonusDesc = 'Colombia ×2+2';
+    bonusDesc = '🟡 ×2 amarillo';
+  } else if (matchColor === 'red') {
+    // Red color for special matches
+    final = base * 2;
+    bonusDesc = '🔴 ×2 rojo';
   }
 
   return { points: final, label, base, bonusDesc };
@@ -1052,6 +1065,7 @@ function computeScorerPoints(userPred, actual) {
 
 async function recalculateAllScores() {
   const scores = {};
+  let totalCalculations = 0;
 
   // Match predictions
   allMatches.forEach(match => {
@@ -1063,11 +1077,18 @@ async function recalculateAllScores() {
     Object.keys(preds).forEach(username => {
       if (!scores[username]) scores[username] = 0;
       const pred = preds[username];
+      if (!pred || pred.home === undefined || pred.away === undefined) {
+        console.warn('[SCORING] Predicción inválida para '+username+' en partido '+match.id);
+        return;
+      }
       const { points } = computeMatchPoints(pred.home, pred.away, match.scoreHome, match.scoreAway, match.stage, color, isColombia);
       scores[username] += points;
       preds[username].pointsEarned = points;
+      totalCalculations++;
     });
   });
+  
+  console.log('[SCORING] Predicciones de partidos calculadas: '+totalCalculations);
 
   // Classified predictions (if admin has set actual classified)
   if (actualClassified && Object.keys(actualClassified).length > 0) {
@@ -1252,6 +1273,7 @@ function isColombia(match) {
 function colorBadge(color) {
   if(color==='grey') return '<span class="bonus-badge bonus-grey">⬜ +2</span>';
   if(color==='yellow') return '<span class="bonus-badge bonus-yellow">🟡 ×2</span>';
+  if(color==='red') return '<span class="bonus-badge bonus-red" style="background:rgba(255,23,68,0.15);color:var(--red);border:1px solid rgba(255,23,68,0.3)">🔴 ×2</span>';
   return '';
 }
 
@@ -1603,12 +1625,30 @@ async function handleRegisterResult() {
   const color=document.getElementById('result-color').value;
   const errEl=document.getElementById('result-error');
   if(isNaN(home)||isNaN(away)||home<0||away<0){showError(errEl,'Ingresa números válidos (≥ 0)');return;}
+  
   const match=allMatches.find(m=>m.id===matchId);
-  match.scoreHome=home;match.scoreAway=away;match.status='finished';match.locked=true;match.color=color;
+  if(!match){showError(errEl,'Partido no encontrado');return;}
+  
+  match.scoreHome=home;
+  match.scoreAway=away;
+  match.status='finished';
+  match.locked=true;
+  match.color=color;
+  
+  console.log('[SCORING] Registrando resultado: '+match.home+' '+home+'-'+away+' '+match.away+' (Color: '+color+')');
+  
   await recalculateAllScores();
+  console.log('[SCORING] Puntos recalculados. Tabla actualizada.');
+  
   await saveData();
   closeModal('result-modal');
   render();
+  
+  const successMsg = document.createElement('div');
+  successMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:var(--green);color:#000;padding:1rem 1.5rem;border-radius:8px;font-weight:600;z-index:9999;animation:slideIn 0.3s ease';
+  successMsg.textContent = '✅ Resultado registrado y puntos calculados';
+  document.body.appendChild(successMsg);
+  setTimeout(() => successMsg.remove(), 3000);
 }
 
 async function undoResult(matchId) {
