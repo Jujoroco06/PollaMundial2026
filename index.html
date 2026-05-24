@@ -163,6 +163,23 @@
       -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
     }
     .auth-logo p{color:var(--muted);font-size:.78rem;margin-top:.5rem;letter-spacing:1px;text-transform:uppercase;}
+    
+    /* IMPROVED AUTH STYLES */
+    .auth-box{box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+    .form-group label{display:flex;align-items:center;gap:6px;font-size:.7rem;}
+    .form-group label::before{content:'';display:inline-block;width:4px;height:4px;background:var(--green);border-radius:50%;}
+    
+    .info-box{
+      background:rgba(0,230,118,0.06);border:1px solid rgba(0,230,118,0.2);
+      border-radius:8px;padding:1rem;margin-bottom:1rem;
+      font-size:.8rem;color:var(--text);line-height:1.6;
+    }
+    
+    .btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.2);}
+    .btn:active{transform:translateY(0);}
+    
+    input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+    input[type=number]{-moz-appearance:textfield;}
     .auth-tabs{
       display:grid;grid-template-columns:repeat(3,1fr);gap:3px;
       background:var(--surface);border:1px solid var(--border);
@@ -174,6 +191,17 @@
       font-size:.75rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;
     }
     .auth-tab.active{background:var(--surface2);color:var(--text);}
+
+    /* SECURITY QUESTION SELECT */
+    .security-question-select{
+      width:100%;background:var(--surface2);border:1px solid var(--border);
+      border-radius:8px;padding:10px 12px;color:var(--text);
+      font-family:'Barlow',sans-serif;font-size:.9rem;
+      transition:border-color .15s;outline:none;
+      cursor:pointer;
+    }
+    .security-question-select:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(0,230,118,0.1);}
+    .security-question-select option{background:var(--surface2);color:var(--text);}
 
     /* FORMS */
     .form-group{margin-bottom:.9rem;}
@@ -480,7 +508,7 @@
       <div class="error-msg" id="register-error"></div>
     </div>
     <div id="forgot-form" class="card hidden">
-      <div class="form-group"><label>Usuario</label><input type="text" id="forgot-username" placeholder="Tu usuario"></div>
+      <div class="form-group"><label>Usuario</label><input type="text" id="forgot-username" placeholder="Tu usuario" onchange="loadSecurityQuestion()" onkeyup="loadSecurityQuestion()"></div>
       <div class="form-row">
         <div class="form-group"><label>Nueva clave</label><input type="password" id="forgot-new-password" placeholder="Nueva"></div>
         <div class="form-group"><label>Confirmar</label><input type="password" id="forgot-new-password-confirm" placeholder="Repite"></div>
@@ -917,6 +945,21 @@ const STORAGE_KEYS = {
   adminScorer:'mw26g_admin_scorer', // actual scorer (admin)
 };
 
+// Preguntas de seguridad para recuperación de contraseña
+const SECURITY_QUESTIONS = [
+  "¿Cuál es el nombre de tu mascota favorita?",
+  "¿En qué ciudad naciste?",
+  "¿Cuál es tu comida favorita?",
+  "¿Cuál es el nombre de tu mejor amigo/a de la infancia?",
+  "¿Cuál es tu película favorita?",
+  "¿Cuál es el nombre de tu madre?",
+  "¿En qué año te graduaste de la escuela?",
+  "¿Cuál es tu color favorito?",
+  "¿Cuál es el nombre de tu primer trabajo?",
+  "¿Cuál es tu equipo de fútbol favorito?"
+];
+
+
 // ============================================================
 // STATE
 // ============================================================
@@ -1136,6 +1179,8 @@ async function handleRegister() {
   const username=document.getElementById('register-username').value.trim().toLowerCase();
   const password=document.getElementById('register-password').value;
   const confirm=document.getElementById('register-password-confirm').value;
+  const securityQIdx=document.getElementById('register-security-question').value;
+  const securityAns=document.getElementById('register-security-answer').value.trim().toLowerCase();
   const adminSel=document.getElementById('register-admin-select').value;
   const adminPw=document.getElementById('register-admin-password').value;
   const errEl=document.getElementById('register-error');
@@ -1144,14 +1189,28 @@ async function handleRegister() {
   if(!name||!username||!password) return showError(errEl,'Completa todos los campos');
   if(password!==confirm) return showError(errEl,'Las contraseñas no coinciden');
   if(password.length<6) return showError(errEl,'Mínimo 6 caracteres');
+  if(!securityQIdx||!securityAns) return showError(errEl,'Debes seleccionar una pregunta de seguridad y responderla');
+  
   let isAdmin=false;
   if(adminSel==='yes'){
     if(adminPw!==ADMIN_PASSWORD) return showError(errEl,'Contraseña de admin incorrecta');
     isAdmin=true;
   }
+  
   allUsers=(await Storage.get(STORAGE_KEYS.users))||[];
   if(allUsers.some(u=>u.username===username)) return showError(errEl,'Usuario ya existe');
-  const newUser={id:Date.now().toString(),name,username,passwordHash:hashPassword(password),isAdmin,createdAt:new Date().toISOString()};
+  
+  const newUser={
+    id:Date.now().toString(),
+    name,
+    username,
+    passwordHash:hashPassword(password),
+    securityQuestion:parseInt(securityQIdx),
+    securityAnswer:securityAns,
+    isAdmin,
+    createdAt:new Date().toISOString()
+  };
+  
   allUsers.push(newUser);
   await Storage.set(STORAGE_KEYS.users,allUsers);
   currentUser=newUser;
@@ -1180,15 +1239,26 @@ async function handleLogin() {
 
 async function handleForgotPassword() {
   const username=document.getElementById('forgot-username').value.trim().toLowerCase();
+  const securityAns=document.getElementById('forgot-security-answer').value.trim().toLowerCase();
   const newPwd=document.getElementById('forgot-new-password').value;
   const confirmPwd=document.getElementById('forgot-new-password-confirm').value;
   const errEl=document.getElementById('forgot-error');
   errEl.style.display='none';
+  
   if(!username||!newPwd||!confirmPwd) return showError(errEl,'Completa todos los campos');
+  if(!securityAns) return showError(errEl,'Debes responder la pregunta de seguridad');
   if(newPwd!==confirmPwd) return showError(errEl,'Las contraseñas no coinciden');
+  if(newPwd.length<6) return showError(errEl,'Mínimo 6 caracteres');
+  
   allUsers=(await Storage.get(STORAGE_KEYS.users))||[];
   const user=allUsers.find(u=>u.username===username);
   if(!user) return showError(errEl,'Usuario no encontrado');
+  
+  // Validar respuesta de seguridad
+  if(!user.securityAnswer || user.securityAnswer !== securityAns) {
+    return showError(errEl,'❌ Respuesta de seguridad incorrecta');
+  }
+  
   user.passwordHash=hashPassword(newPwd);
   await Storage.set(STORAGE_KEYS.users,allUsers);
   alert('✅ Contraseña actualizada. Inicia sesión.');
@@ -1285,7 +1355,47 @@ function closeModal(id){document.getElementById(id).classList.remove('active');}
 function switchAuthTab(tab) {
   document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',['login','register','forgot'][i]===tab));
   ['login','register','forgot'].forEach(t=>document.getElementById(t+'-form').classList.toggle('hidden',t!==tab));
+  
+  // Cargar preguntas de seguridad si es registro
+  if(tab==='register'){
+    const select=document.getElementById('register-security-question');
+    if(select && select.options.length===1){
+      SECURITY_QUESTIONS.forEach((q,i)=>{
+        const opt=document.createElement('option');
+        opt.value=i;
+        opt.textContent=q;
+        select.appendChild(opt);
+      });
+    }
+  }
+  
+  // Cargar pregunta del usuario si es recuperación
+  if(tab==='forgot'){
+    document.getElementById('forgot-security-answer').value='';
+    document.getElementById('forgot-question-label').textContent='Ingresa tu usuario y presiona Tab para ver tu pregunta';
+  }
 }
+function loadSecurityQuestion() {
+  const username=document.getElementById('forgot-username').value.trim().toLowerCase();
+  if(!username) {
+    document.getElementById('forgot-question-label').textContent='Ingresa tu usuario';
+    return;
+  }
+  
+  const user=allUsers.find(u=>u.username===username);
+  if(!user) {
+    document.getElementById('forgot-question-label').textContent='❌ Usuario no encontrado';
+    return;
+  }
+  
+  if(user.securityQuestion !== undefined && user.securityQuestion >= 0 && user.securityQuestion < SECURITY_QUESTIONS.length) {
+    const question=SECURITY_QUESTIONS[user.securityQuestion];
+    document.getElementById('forgot-question-label').textContent='❓ '+question;
+  } else {
+    document.getElementById('forgot-question-label').textContent='⚠️ Pregunta no configurada';
+  }
+}
+
 function toggleAdminPassword() {
   document.getElementById('admin-password-group').classList.toggle('hidden',document.getElementById('register-admin-select').value!=='yes');
 }
