@@ -542,32 +542,50 @@
 // CONFIGURACIÓN Y CONSTANTES
 // ============================================================
 
-// Puntos del Excel - AUTOMÁTICOS
+// Puntos del Excel - EXACTOS Y AUTOMÁTICOS
 const POINTS = {
+  // GRUPOS
   GROUP_EXACT: 5,
   GROUP_CORRECT: 3,
   GROUP_1ST_EXACT: 15,
   GROUP_2ND_EXACT: 12,
   GROUP_CLASSIFIED_WRONG_POS: 8,
+  
+  // DIECISEISAVOS Y OCTAVOS
   R16_EXACT: 10,
   R16_CORRECT: 7,
   R16_CLASSIFIED: 20,
+  
+  // CUARTOS
   QF_EXACT: 15,
   QF_CORRECT: 10,
   QF_CLASSIFIED: 25,
+  
+  // SEMIFINALES
   SF_EXACT: 20,
   SF_CORRECT: 15,
   SF_CLASSIFIED: 30,
+  
+  // TERCER PUESTO
   THIRD_EXACT: 25,
   FOURTH_TEAM: 15,
   THIRD_TEAM: 30,
+  
+  // FINAL
   FINAL_EXACT: 40,
   FINAL_CORRECT: 20,
   RUNNER_UP: 40,
   CHAMPION: 60,
+  
+  // GOLEADOR
   SCORER_NAME_AND_GOALS: 20,
   SCORER_NAME_ONLY: 10,
   SCORER_GOALS_ONLY: 25,
+  
+  // BONIFICADORES
+  GREY_BONUS: 2,        // Color gris: +2 puntos
+  YELLOW_MULTIPLIER: 2, // Color amarillo: ×2 puntos
+  COLOMBIA_BONUS: 2,    // Colombia exacto: ×2 +2
 };
 
 const STAGE_POINTS = {
@@ -832,9 +850,9 @@ function closeModal(id) {
 }
 
 // ============================================================
-// CÁLCULO DE PUNTOS - AUTOMÁTICO
+// CÁLCULO DE PUNTOS - AUTOMÁTICO CON BONIFICADORES
 // ============================================================
-function computeMatchPoints(predHome, predAway, actualHome, actualAway, stage) {
+function computeMatchPoints(predHome, predAway, actualHome, actualAway, stage, color = 'normal', isColombia = false) {
   const pts = STAGE_POINTS[stage] || STAGE_POINTS['Grupos'];
   let base = 0;
 
@@ -843,19 +861,57 @@ function computeMatchPoints(predHome, predAway, actualHome, actualAway, stage) {
   const aH = parseInt(actualHome);
   const aA = parseInt(actualAway);
 
+  if (isNaN(pH) || isNaN(pA) || isNaN(aH) || isNaN(aA)) {
+    return { points: 0, label: 'wrong', breakdown: 'Datos inválidos' };
+  }
+
+  let isExact = false;
+
+  // Verificar si es exacto
   if (pH === aH && pA === aA) {
     base = pts.exact;
-    return { points: base, label: 'exact' };
+    isExact = true;
+  } else {
+    // Verificar si es correcto (mismo ganador)
+    const predWinner = Math.sign(pH - pA);
+    const actualWinner = Math.sign(aH - aA);
+    if (predWinner === actualWinner) {
+      base = pts.correct;
+    }
   }
 
-  const predWinner = Math.sign(pH - pA);
-  const actualWinner = Math.sign(aH - aA);
-  if (predWinner === actualWinner) {
-    base = pts.correct;
-    return { points: base, label: 'correct' };
+  if (base === 0) {
+    return { points: 0, label: 'wrong', breakdown: '❌ Fallado' };
   }
 
-  return { points: 0, label: 'wrong' };
+  let final = base;
+  let label = isExact ? 'exact' : 'correct';
+  let bonusInfo = [];
+
+  // BONIFICADORES DEL EXCEL
+  
+  // 1. BONIFICADOR COLOMBIA (PRIORIDAD MÁXIMA)
+  if (isColombia && isExact) {
+    final = base * POINTS.COLOMBIA_BONUS + 2;  // ×2 +2
+    bonusInfo.push('🇨🇴 ×2+2');
+  }
+  // 2. BONIFICADOR AMARILLO (solo si NO es Colombia)
+  else if (color === 'yellow' && !isColombia) {
+    final = base * POINTS.YELLOW_MULTIPLIER;  // ×2
+    bonusInfo.push('🟡 ×2');
+  }
+  // 3. BONIFICADOR GRIS
+  else if (color === 'grey') {
+    final = base + POINTS.GREY_BONUS;  // +2
+    bonusInfo.push('⬜ +2');
+  }
+
+  return {
+    points: final,
+    label,
+    base,
+    breakdown: bonusInfo.length > 0 ? bonusInfo.join(' ') : 'Base'
+  };
 }
 
 // ============================================================
@@ -914,7 +970,7 @@ function renderMyPredictions() {
 
     let resultHtml = '';
     if (pred && m.status === 'finished') {
-      const { points, label } = computeMatchPoints(pred.home, pred.away, m.scoreHome, m.scoreAway, m.stage);
+      const { points, label } = computeMatchPoints(pred.home, pred.away, m.scoreHome, m.scoreAway, m.stage, m.color, isColombia);
       const cls = label === 'exact' ? 'pred-exact' : label === 'correct' ? 'pred-correct' : 'pred-wrong';
       const txt = label === 'exact' ? `⭐ +${points}pts` : label === 'correct' ? `✓ +${points}pts` : '❌ 0pts';
       resultHtml = `<span class="pred-result ${cls}">${txt}</span>`;
@@ -925,6 +981,7 @@ function renderMyPredictions() {
         <div class="match-header">
           <span class="stage-badge">${m.stage}${m.group ? ' · ' + m.group : ''}</span>
           <span>${m.date}</span>
+          ${isColombia ? '🇨🇴' : ''}
         </div>
         <div class="match-teams">
           <div class="team-home team-name">${m.home}</div>
@@ -978,6 +1035,7 @@ function renderAllMatches() {
         <div class="match-header">
           <span style="font-size:.72rem">${m.date} ${m.time}</span>
           <span class="stage-badge">${m.stage}</span>
+          ${isColombia ? '🇨🇴' : ''}
         </div>
         <div class="match-teams">
           <div class="team-home team-name">${m.home}</div>
@@ -1123,6 +1181,7 @@ function renderAdminMatches() {
         <div class="match-header">
           <span style="font-size:.7rem">${m.date} ${m.time}</span>
           <span class="status-badge status-${m.status}">${m.status === 'finished' ? '✓ FINAL' : '⏱ Pendiente'}</span>
+          ${isColombia ? '🇨🇴' : ''}
         </div>
         <div class="match-teams">
           <div class="team-home team-name">${m.home}</div>
@@ -1174,9 +1233,11 @@ function handleRegisterResult() {
 
   // CALCULAR PUNTOS AUTOMÁTICAMENTE
   const preds = allPredictions[matchId] || {};
+  const isColombia = match.home.toLowerCase().includes('colombia') || match.away.toLowerCase().includes('colombia');
+  
   Object.keys(preds).forEach(username => {
     const pred = preds[username];
-    const { points } = computeMatchPoints(pred.home, pred.away, home, away, match.stage);
+    const { points } = computeMatchPoints(pred.home, pred.away, home, away, match.stage, match.color, isColombia);
     if (!allScores[username]) allScores[username] = 0;
     allScores[username] += points;
   });
@@ -1197,11 +1258,12 @@ function undoResult(matchId) {
   
   const match = allMatches.find(m => m.id === matchId);
   const preds = allPredictions[matchId] || {};
+  const isColombia = match.home.toLowerCase().includes('colombia') || match.away.toLowerCase().includes('colombia');
 
   // Restar puntos
   Object.keys(preds).forEach(username => {
     const pred = preds[username];
-    const { points } = computeMatchPoints(pred.home, pred.away, match.scoreHome, match.scoreAway, match.stage);
+    const { points } = computeMatchPoints(pred.home, pred.away, match.scoreHome, match.scoreAway, match.stage, match.color, isColombia);
     allScores[username] = (allScores[username] || 0) - points;
   });
 
@@ -1218,19 +1280,22 @@ function undoResult(matchId) {
 function showPointsDetail(matchId) {
   const match = allMatches.find(m => m.id === matchId);
   const preds = allPredictions[matchId] || {};
+  const isColombia = match.home.toLowerCase().includes('colombia') || match.away.toLowerCase().includes('colombia');
 
   let html = '<div style="display:flex;flex-direction:column;gap:.75rem;">';
   Object.keys(preds).forEach(username => {
     const pred = preds[username];
     const user = allUsers.find(u => u.username === username);
-    const { points, label } = computeMatchPoints(pred.home, pred.away, match.scoreHome, match.scoreAway, match.stage);
+    const { points, label, breakdown } = computeMatchPoints(pred.home, pred.away, match.scoreHome, match.scoreAway, match.stage, match.color, isColombia);
     const badgeClass = label === 'exact' ? 'pred-exact' : label === 'correct' ? 'pred-correct' : 'pred-wrong';
 
     html += `
       <div style="padding:.75rem;background:var(--surface2);border-radius:var(--r)">
         <strong style="font-size:.85rem">${user.name}</strong>
         <div style="font-size:.75rem;color:var(--muted);margin:.3rem 0">Predicción: ${pred.home} - ${pred.away}</div>
+        <div style="font-size:.75rem;color:var(--muted);margin:.3rem 0">Real: ${match.scoreHome} - ${match.scoreAway}</div>
         <span class="pred-result ${badgeClass}">${label === 'exact' ? '⭐' : label === 'correct' ? '✓' : '❌'} ${points} pts</span>
+        <div style="font-size:.65rem;color:var(--muted);margin-top:.3rem">${breakdown}</div>
       </div>
     `;
   });
