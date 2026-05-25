@@ -247,11 +247,6 @@
       background: linear-gradient(135deg, #fff9e6 0%, #fff 100%);
     }
     
-    .match-card.finished {
-      border-left-color: var(--success);
-      opacity: 0.8;
-    }
-    
     .match-header {
       display: flex;
       justify-content: space-between;
@@ -276,12 +271,6 @@
     .team-name {
       font-weight: 600;
       margin-bottom: 4px;
-    }
-    
-    .team-score {
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: var(--primary);
     }
     
     .vs {
@@ -367,7 +356,7 @@
       <p>Mundial 2026 · Predicciones</p>
     </header>
     
-    <!-- ==================== SECCIÓN: LOGIN ==================== -->
+    <!-- Login Section -->
     <section id="section-login" class="section active">
       <div class="card">
         <h2>🔐 Iniciar Sesión</h2>
@@ -394,7 +383,7 @@
       </div>
     </section>
     
-    <!-- ==================== SECCIÓN: REGISTRO ==================== -->
+    <!-- Register Section -->
     <section id="section-register" class="section">
       <div class="card">
         <h2>📝 Registro de Usuario</h2>
@@ -426,7 +415,7 @@
       </div>
     </section>
     
-    <!-- ==================== SECCIÓN: DASHBOARD ==================== -->
+    <!-- Dashboard Section -->
     <section id="section-dashboard" class="section">
       
       <!-- Header del Dashboard -->
@@ -540,9 +529,9 @@
     
   </div>
   
-  <!-- ==================== JAVASCRIPT ==================== -->
+  <!-- ==================== FIREBASE CONNECTION ==================== -->
   <script>
-    // ===== CONFIGURACIÓN FIREBASE =====
+    // Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyB91PswJIsYZDtD9tUfGrKd7K7lK-Ncn2Y",
       authDomain: "polla-mundial-b094d.firebaseapp.com",
@@ -554,16 +543,16 @@
       measurementId: "G-SMLXCS4D4Y"
     };
     
-    // Inicializar Firebase
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     
-    // Variables globales
+    // Global variables
     let currentUser = null;
     let userData = null;
     let isAdmin = false;
     
-    // ===== UTILIDADES =====
+    // Utility functions
     function showSection(sectionId) {
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       document.getElementById(sectionId).classList.add('active');
@@ -576,7 +565,6 @@
       document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
       if(btn) btn.classList.add('active');
       
-      // Cargar datos según el tab
       if(tabId === 'tab-clasificacion') cargarClasificacion();
       if(tabId === 'tab-misbets') cargarMisPredicciones();
       if(tabId === 'tab-apostar') cargarPartidosParaApostar();
@@ -591,7 +579,6 @@
       setTimeout(() => el.classList.add('hidden'), 5000);
     }
     
-    // Hash simple para contraseñas (en producción usar algo más seguro)
     async function hashPassword(password) {
       const encoder = new TextEncoder();
       const data = encoder.encode(password);
@@ -600,9 +587,62 @@
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
     
-    // ===== AUTENTICACIÓN =====
+    // Login
+    async function loginUser() {
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+      
+      if(!username || !password) {
+        showAlert('login-alert', 'Ingresa usuario y contraseña', 'error');
+        return;
+      }
+      
+      try {
+        const snapshot = await database.ref('mw26g_users')
+          .orderByChild('username')
+          .equalTo(username)
+          .once('value');
+        
+        if(!snapshot.exists()) {
+          showAlert('login-alert', '❌ Usuario no encontrado', 'error');
+          return;
+        }
+        
+        let userFound = null;
+        snapshot.forEach(child => {
+          userFound = { key: child.key, ...child.val() };
+        });
+        
+        const passwordHash = await hashPassword(password);
+        if(passwordHash !== userFound.passwordHash) {
+          showAlert('login-alert', '❌ Contraseña incorrecta', 'error');
+          return;
+        }
+        
+        currentUser = userFound;
+        userData = userFound;
+        isAdmin = userFound.isAdmin || false;
+        
+        document.getElementById('dash-username').textContent = userFound.username;
+        document.getElementById('dash-name').textContent = userFound.name;
+        
+        if(isAdmin) {
+          document.getElementById('btn-admin').classList.remove('hidden');
+        }
+        
+        showAlert('login-alert', '✅ ¡Bienvenido! Cargando dashboard...', 'success');
+        setTimeout(() => {
+          showSection('section-dashboard');
+          cargarClasificacion();
+        }, 1500);
+        
+      } catch(error) {
+        console.error(error);
+        showAlert('login-alert', '❌ Error de conexión', 'error');
+      }
+    }
     
-    // Registro de usuario
+    // Register
     async function registerUser() {
       const name = document.getElementById('reg-name').value.trim();
       const username = document.getElementById('reg-username').value.trim();
@@ -625,7 +665,6 @@
       }
       
       try {
-        // Verificar si el usuario ya existe
         const snapshot = await database.ref('mw26g_users')
           .orderByChild('username')
           .equalTo(username)
@@ -636,7 +675,6 @@
           return;
         }
         
-        // Crear nuevo usuario
         const passwordHash = await hashPassword(password);
         const newUserRef = database.ref('mw26g_users').push();
         const newUserId = newUserRef.key;
@@ -650,7 +688,6 @@
           createdAt: new Date().toISOString()
         });
         
-        // Inicializar puntuación
         await database.ref('mw26g_scores/' + username).set(0);
         
         showAlert('register-alert', '✅ ¡Registro exitoso! Redirigiendo...', 'success');
@@ -665,65 +702,6 @@
       }
     }
     
-    // Login de usuario
-    async function loginUser() {
-      const username = document.getElementById('login-username').value.trim();
-      const password = document.getElementById('login-password').value;
-      
-      if(!username || !password) {
-        showAlert('login-alert', 'Ingresa usuario y contraseña', 'error');
-        return;
-      }
-      
-      try {
-        // Buscar usuario
-        const snapshot = await database.ref('mw26g_users')
-          .orderByChild('username')
-          .equalTo(username)
-          .once('value');
-        
-        if(!snapshot.exists()) {
-          showAlert('login-alert', '❌ Usuario no encontrado', 'error');
-          return;
-        }
-        
-        let userFound = null;
-        snapshot.forEach(child => {
-          userFound = { key: child.key, ...child.val() };
-        });
-        
-        // Verificar contraseña
-        const passwordHash = await hashPassword(password);
-        if(passwordHash !== userFound.passwordHash) {
-          showAlert('login-alert', '❌ Contraseña incorrecta', 'error');
-          return;
-        }
-        
-        // Login exitoso
-        currentUser = userFound;
-        userData = userFound;
-        isAdmin = userFound.isAdmin || false;
-        
-        // Actualizar UI
-        document.getElementById('dash-username').textContent = userFound.username;
-        document.getElementById('dash-name').textContent = userFound.name;
-        
-        if(isAdmin) {
-          document.getElementById('btn-admin').classList.remove('hidden');
-        }
-        
-        showAlert('login-alert', '✅ ¡Bienvenido! Cargando dashboard...', 'success');
-        setTimeout(() => {
-          showSection('section-dashboard');
-          cargarClasificacion();
-        }, 1500);
-        
-      } catch(error) {
-        console.error(error);
-        showAlert('login-alert', '❌ Error de conexión', 'error');
-      }
-    }
-    
     // Logout
     function logoutUser() {
       currentUser = null;
@@ -733,94 +711,7 @@
       document.getElementById('login-password').value = '';
     }
     
-    // ===== PREDICCIONES =====
-    
-    // Guardar predicción de partido
-    async function guardarPrediccionPartido(matchId, golesLocal, golesVisitante) {
-      if(!currentUser) return;
-      
-      try {
-        const username = currentUser.username;
-        await database.ref(`mw26g_predictions/${matchId}/${username}`).set({
-          home: parseInt(golesLocal),
-          away: parseInt(golesVisitante),
-          pointsEarned: 0
-        });
-        
-        alert('✅ Predicción guardada');
-      } catch(error) {
-        alert('Error: ' + error.message);
-      }
-    }
-    
-    // Cargar mis predicciones
-    async function cargarMisPredicciones() {
-      if(!currentUser) return;
-      
-      const username = currentUser.username;
-      const container = document.getElementById('mis-partidos-lista');
-      container.innerHTML = '<p class="text-center" style="color: #666; padding: 20px;">Cargando...</p>';
-      
-      // Obtener predicciones del usuario
-      const predsSnapshot = await database.ref('mw26g_predictions')
-        .orderByChild(username)
-        .once('value');
-      
-      if(!predsSnapshot.exists()) {
-        container.innerHTML = '<p class="text-center" style="color: #666;">No has hecho predicciones aún.</p>';
-        return;
-      }
-      
-      container.innerHTML = '';
-      
-      // Para cada predicción, obtener info del partido
-      predsSnapshot.forEach(matchPred => {
-        const matchId = matchPred.key;
-        const pred = matchPred.val()[username];
-        
-        database.ref(`mw26g_matches`).orderByChild('id').equalTo(matchId).once('value')
-          .then(snapshot => {
-            if(snapshot.exists()) {
-              let partido = null;
-              snapshot.forEach(child => {
-                partido = child.val();
-              });
-              
-              if(partido) {
-                const card = document.createElement('div');
-                card.className = `match-card ${partido.color === 'colombia' ? 'colombia' : ''} ${partido.status === 'finished' ? 'finished' : ''}`;
-                
-                card.innerHTML = `
-                  <div class="match-header">
-                    <span>${partido.stage?.toUpperCase() || 'GRUPOS'} - ${partido.group || ''}</span>
-                    <span>${partido.date} ${partido.time ? '· ' + partido.time : ''}</span>
-                  </div>
-                  <div class="match-teams">
-                    <div class="team">
-                      <div class="team-name">${partido.home}</div>
-                      ${partido.scoreHome !== undefined ? `<div class="team-score">${partido.scoreHome}</div>` : ''}
-                    </div>
-                    <div class="vs">VS</div>
-                    <div class="team">
-                      <div class="team-name">${partido.away}</div>
-                      ${partido.scoreAway !== undefined ? `<div class="team-score">${partido.scoreAway}</div>` : ''}
-                    </div>
-                  </div>
-                  <div style="margin-top: 12px; padding: 8px; background: white; border-radius: 8px;">
-                    <strong>Tu predicción:</strong> ${pred.home} - ${pred.away}
-                    ${pred.pointsEarned > 0 ? `<span style="color: var(--success); margin-left: 10px;">+${pred.pointsEarned} pts</span>` : ''}
-                  </div>
-                `;
-                
-                container.appendChild(card);
-              }
-            }
-          });
-      });
-    }
-    
-    // ===== CLASIFICACIÓN =====
-    
+    // Load classification
     async function cargarClasificacion() {
       document.getElementById('loading-clasificacion').classList.remove('hidden');
       document.getElementById('tabla-clasificacion').classList.add('hidden');
@@ -835,7 +726,6 @@
         const scores = scoresSnapshot.val() || {};
         const users = usersSnapshot.val() || {};
         
-        // Crear array de usuarios con sus puntos
         const clasificacion = Object.entries(scores).map(([username, points]) => {
           const user = Object.values(users).find(u => u.username === username);
           return {
@@ -845,7 +735,6 @@
           };
         });
         
-        // Ordenar por puntos descendente
         clasificacion.sort((a, b) => b.points - a.points);
         
         clasificacion.forEach((user, index) => {
@@ -872,8 +761,7 @@
       }
     }
     
-    // ===== PARTIDOS PARA APOSTAR =====
-    
+    // Load matches for betting
     async function cargarPartidosParaApostar() {
       const container = document.getElementById('partidos-lista');
       container.innerHTML = '<p class="text-center" style="color: #666; padding: 20px;">Cargando partidos...</p>';
@@ -887,7 +775,6 @@
           return;
         }
         
-        // Cargar mis predicciones existentes
         const username = currentUser.username;
         const misPredsSnap = await database.ref('mw26g_predictions').once('value');
         const misPreds = misPredsSnap.val() || {};
@@ -954,12 +841,92 @@
       }
     }
     
-    // ===== FUNCIONES DE ADMIN =====
+    // Save prediction
+    async function guardarPrediccionPartido(matchId, golesLocal, golesVisitante) {
+      if(!currentUser) return;
+      
+      try {
+        const username = currentUser.username;
+        await database.ref(`mw26g_predictions/${matchId}/${username}`).set({
+          home: parseInt(golesLocal),
+          away: parseInt(golesVisitante),
+          pointsEarned: 0
+        });
+        
+        alert('✅ Predicción guardada');
+      } catch(error) {
+        alert('Error: ' + error.message);
+      }
+    }
     
+    // Load my predictions
+    async function cargarMisPredicciones() {
+      if(!currentUser) return;
+      
+      const username = currentUser.username;
+      const container = document.getElementById('mis-partidos-lista');
+      container.innerHTML = '<p class="text-center" style="color: #666; padding: 20px;">Cargando...</p>';
+      
+      const predsSnapshot = await database.ref('mw26g_predictions')
+        .orderByChild(username)
+        .once('value');
+      
+      if(!predsSnapshot.exists()) {
+        container.innerHTML = '<p class="text-center" style="color: #666;">No has hecho predicciones aún.</p>';
+        return;
+      }
+      
+      container.innerHTML = '';
+      
+      predsSnapshot.forEach(matchPred => {
+        const matchId = matchPred.key;
+        const pred = matchPred.val()[username];
+        
+        database.ref(`mw26g_matches`).orderByChild('id').equalTo(matchId).once('value')
+          .then(snapshot => {
+            if(snapshot.exists()) {
+              let partido = null;
+              snapshot.forEach(child => {
+                partido = child.val();
+              });
+              
+              if(partido) {
+                const card = document.createElement('div');
+                card.className = `match-card ${partido.color === 'colombia' ? 'colombia' : ''} ${partido.status === 'finished' ? 'finished' : ''}`;
+                
+                card.innerHTML = `
+                  <div class="match-header">
+                    <span>${partido.stage?.toUpperCase() || 'GRUPOS'} - ${partido.group || ''}</span>
+                    <span>${partido.date} ${partido.time ? '· ' + partido.time : ''}</span>
+                  </div>
+                  <div class="match-teams">
+                    <div class="team">
+                      <div class="team-name">${partido.home}</div>
+                      ${partido.scoreHome !== undefined ? `<div class="team-score">${partido.scoreHome}</div>` : ''}
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="team">
+                      <div class="team-name">${partido.away}</div>
+                      ${partido.scoreAway !== undefined ? `<div class="team-score">${partido.scoreAway}</div>` : ''}
+                    </div>
+                  </div>
+                  <div style="margin-top: 12px; padding: 8px; background: white; border-radius: 8px;">
+                    <strong>Tu predicción:</strong> ${pred.home} - ${pred.away}
+                    ${pred.pointsEarned > 0 ? `<span style="color: var(--success); margin-left: 10px;">+${pred.pointsEarned} pts</span>` : ''}
+                  </div>
+                `;
+                
+                container.appendChild(card);
+              }
+            }
+          });
+      });
+    }
+    
+    // Load admin data
     async function cargarDatosAdmin() {
       if(!isAdmin) return;
       
-      // Cargar partidos para el selector
       const snapshot = await database.ref('mw26g_matches').once('value');
       const select = document.getElementById('admin-partido');
       select.innerHTML = '<option value="">— Selecciona un partido —</option>';
@@ -973,6 +940,7 @@
       });
     }
     
+    // Register match result
     async function registrarResultadoPartido() {
       const matchId = document.getElementById('admin-partido').value;
       const golesLocal = parseInt(document.getElementById('admin-goles-local').value);
@@ -981,7 +949,6 @@
       if(!matchId) return alert('Selecciona un partido');
       
       try {
-        // Encontrar el partido y actualizar
         const snapshot = await database.ref('mw26g_matches').orderByChild('id').equalTo(matchId).once('value');
         
         snapshot.forEach(child => {
@@ -994,7 +961,6 @@
           });
         });
         
-        // Calcular puntos para todos los usuarios
         await calcularPuntosPartido(matchId, golesLocal, golesVisitante);
         
         alert('✅ Resultado registrado y puntos calculados');
@@ -1004,8 +970,8 @@
       }
     }
     
+    // Calculate points for match
     async function calcularPuntosPartido(matchId, resultadoLocal, resultadoVisitante) {
-      // Obtener info del partido
       const partidoSnap = await database.ref('mw26g_matches').orderByChild('id').equalTo(matchId).once('value');
       let partido = null;
       partidoSnap.forEach(child => {
@@ -1017,11 +983,9 @@
       const esColombia = partido.color === 'colombia';
       const esFaseEliminatoria = ['Dieciseisavos', 'Octavos', 'Cuartos', 'Semifinales', 'Final'].includes(partido.stage);
       
-      // Obtener todas las predicciones
       const predsSnap = await database.ref(`mw26g_predictions/${matchId}`).once('value');
       const predicciones = predsSnap.val() || {};
       
-      // Calcular puntos para cada usuario
       for(const [username, pred] of Object.entries(predicciones)) {
         let puntos = 0;
         
@@ -1036,7 +1000,6 @@
           puntos = 1;
         }
         
-        // Aplicar multiplicadores
         if(puntos > 0) {
           if(esColombia) {
             puntos = puntos * 2 + 2;
@@ -1046,10 +1009,8 @@
             puntos = puntos + 2;
           }
           
-          // Actualizar predicción con puntos ganados
           await database.ref(`mw26g_predictions/${matchId}/${username}/pointsEarned`).set(puntos);
           
-          // Actualizar score total del usuario
           await database.ref(`mw26g_scores/${username}`).transaction(currentScore => {
             return (currentScore || 0) + puntos;
           });
@@ -1057,7 +1018,7 @@
       }
     }
     
-    // ===== INICIALIZACIÓN =====
+    // Initialize
     document.addEventListener('DOMContentLoaded', () => {
       console.log('✅ Firebase conectado');
       console.log('Database URL:', firebaseConfig.databaseURL);
