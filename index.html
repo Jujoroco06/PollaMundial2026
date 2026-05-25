@@ -135,6 +135,14 @@
     /* Goleador card */
     .scorer-card{background:linear-gradient(135deg,rgba(255,215,64,0.08),rgba(0,230,118,0.05));border:1px solid rgba(255,215,64,0.3);border-radius:var(--rL);padding:1rem;margin-bottom:1rem;}
     .scorer-locked{opacity:.6;pointer-events:none;}
+    /* Colombia flag SVG inline */
+    .col-flag{display:inline-flex;align-items:center;vertical-align:middle;margin-left:2px;border-radius:2px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,0.15);}
+    /* Forgot password link */
+    .forgot-link{display:block;text-align:center;margin-top:.7rem;font-size:.75rem;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+    .forgot-link:hover{color:var(--green);}
+    .success-msg{font-size:.78rem;margin-top:6px;padding:7px 10px;border-radius:6px;color:var(--green);background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2);display:none;}
+    /* Security question select */
+    select{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a84a0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
     @media(max-width:600px){
       header{padding:.55rem .75rem;}
       .logo{font-size:1.2rem;}
@@ -161,20 +169,64 @@
       <button class="auth-tab active" onclick="switchAuthTab('login',this)">Login</button>
       <button class="auth-tab" onclick="switchAuthTab('register',this)">Registro</button>
     </div>
+
+    <!-- LOGIN -->
     <div id="login-form" class="card">
-      <div class="form-group"><label>Usuario</label><input type="text" id="login-username" placeholder="Tu usuario"></div>
-      <div class="form-group"><label>Contraseña</label><input type="password" id="login-password" placeholder="Tu contraseña"></div>
+      <div class="form-group"><label>Usuario</label><input type="text" id="login-username" placeholder="Tu usuario" autocomplete="username"></div>
+      <div class="form-group"><label>Contraseña</label><input type="password" id="login-password" placeholder="Tu contraseña" autocomplete="current-password"></div>
       <button class="btn btn-primary" style="width:100%" onclick="handleLogin()">Entrar →</button>
       <div class="error-msg" id="login-error"></div>
+      <span class="forgot-link" onclick="openForgotForm()">¿Olvidaste tu contraseña?</span>
     </div>
+
+    <!-- REGISTRO -->
     <div id="register-form" class="card hidden">
       <div class="info-banner">⚠️ Ingresa tu <strong>nombre completo exacto</strong> como está en la lista autorizada del admin.</div>
       <div class="form-group"><label>Nombre Completo</label><input type="text" id="register-name" placeholder="Ej: Juan García" autocomplete="name"></div>
       <div class="form-group"><label>Usuario (nick)</label><input type="text" id="register-username" placeholder="Elige un usuario único" autocomplete="username"></div>
       <div class="form-group"><label>Contraseña</label><input type="password" id="register-password" placeholder="6+ caracteres" autocomplete="new-password"></div>
       <div class="form-group"><label>Confirmar Contraseña</label><input type="password" id="register-password-confirm" placeholder="Repite la contraseña" autocomplete="new-password"></div>
+      <div class="form-group">
+        <label>Pregunta de Seguridad</label>
+        <select id="register-sec-question">
+          <option value="">— Selecciona una pregunta —</option>
+          <option value="mascota">¿Cómo se llamaba tu primera mascota?</option>
+          <option value="ciudad">¿En qué ciudad naciste?</option>
+          <option value="madre">¿Cuál es el primer apellido de tu madre?</option>
+          <option value="colegio">¿Cómo se llamaba tu colegio primario?</option>
+          <option value="equipo">¿Cuál es tu equipo de fútbol favorito?</option>
+          <option value="anio_mama">¿En qué año nació tu mamá?</option>
+          <option value="numero">¿Cuál es tu número favorito?</option>
+          <option value="pelicula">¿Cuál es tu película favorita?</option>
+          <option value="apodo">¿Cuál es tu apodo de la infancia?</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Tu Respuesta</label><input type="text" id="register-sec-answer" placeholder="Solo tú la sabes 🔒" autocomplete="off"></div>
       <button class="btn btn-primary" style="width:100%" onclick="handleRegister()">Registrarse</button>
       <div class="error-msg" id="register-error"></div>
+    </div>
+
+    <!-- OLVIDÉ CONTRASEÑA -->
+    <div id="forgot-form" class="card hidden">
+      <div class="info-banner">Responde tu pregunta de seguridad para <strong>restablecer tu contraseña</strong>.</div>
+      <div id="forgot-step1">
+        <div class="form-group"><label>Tu Usuario (nick)</label><input type="text" id="forgot-username" placeholder="Tu usuario" autocomplete="username"></div>
+        <button class="btn btn-primary" style="width:100%" onclick="forgotStep1()">Continuar →</button>
+        <div class="error-msg" id="forgot-error1"></div>
+      </div>
+      <div id="forgot-step2" class="hidden">
+        <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:.75rem 1rem;margin-bottom:.9rem;">
+          <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Tu pregunta de seguridad</div>
+          <div id="forgot-question-text" style="font-size:.88rem;font-weight:600;color:var(--text)"></div>
+        </div>
+        <div class="form-group"><label>Respuesta</label><input type="text" id="forgot-answer" placeholder="Tu respuesta" autocomplete="off"></div>
+        <div class="form-group"><label>Nueva Contraseña</label><input type="password" id="forgot-new-password" placeholder="6+ caracteres" autocomplete="new-password"></div>
+        <div class="form-group"><label>Confirmar Nueva Contraseña</label><input type="password" id="forgot-confirm-password" placeholder="Repite la contraseña" autocomplete="new-password"></div>
+        <button class="btn btn-gold" style="width:100%" onclick="forgotStep2()">Cambiar Contraseña ✓</button>
+        <div class="error-msg" id="forgot-error2"></div>
+        <div class="success-msg" id="forgot-success">✅ ¡Contraseña actualizada! Ya puedes iniciar sesión.</div>
+        <button class="btn btn-ghost" style="width:100%;margin-top:.5rem" onclick="forgotReset()">← Volver</button>
+      </div>
     </div>
   </div>
 </div>
@@ -597,20 +649,91 @@ function handleRegister(){
   const username = document.getElementById('register-username').value.trim().toLowerCase();
   const password = document.getElementById('register-password').value;
   const confirm = document.getElementById('register-password-confirm').value;
+  const secQ = document.getElementById('register-sec-question').value;
+  const secA = document.getElementById('register-sec-answer').value.trim();
   const err = document.getElementById('register-error');
   err.style.display='none';
   if(!name||!username||!password){ showErr(err,'Completa todos los campos'); return; }
+  if(!secQ){ showErr(err,'Selecciona una pregunta de seguridad'); return; }
+  if(!secA){ showErr(err,'Ingresa tu respuesta de seguridad'); return; }
   const isAuth = authorizedUsers.some(u=>u.toLowerCase()===name.toLowerCase());
   if(!isAuth){ showErr(err,`"${name}" no está en la lista autorizada.`); return; }
   if(password!==confirm){ showErr(err,'Las contraseñas no coinciden'); return; }
   if(password.length<6){ showErr(err,'Mínimo 6 caracteres'); return; }
   if(allUsers.some(u=>u.username===username)){ showErr(err,'Ese usuario ya existe'); return; }
-  const newUser = {id:Date.now().toString(), name, username, passwordHash:hashPwd(password), isAdmin:false, createdAt:new Date().toISOString()};
+  const QUESTIONS = {
+    mascota:'¿Cómo se llamaba tu primera mascota?',
+    ciudad:'¿En qué ciudad naciste?',
+    madre:'¿Cuál es el primer apellido de tu madre?',
+    colegio:'¿Cómo se llamaba tu colegio primario?',
+    equipo:'¿Cuál es tu equipo de fútbol favorito?',
+    anio_mama:'¿En qué año nació tu mamá?',
+    numero:'¿Cuál es tu número favorito?',
+    pelicula:'¿Cuál es tu película favorita?',
+    apodo:'¿Cuál es tu apodo de la infancia?'
+  };
+  const newUser = {
+    id:Date.now().toString(), name, username,
+    passwordHash:hashPwd(password),
+    isAdmin:false,
+    createdAt:new Date().toISOString(),
+    securityQuestion: secQ,
+    securityQuestionText: QUESTIONS[secQ]||secQ,
+    securityAnswerHash: hashPwd(secA.toLowerCase())
+  };
   allUsers.push(newUser);
   save(STORAGE_KEYS.users, allUsers);
   currentUser = newUser;
   save(STORAGE_KEYS.currentUser, currentUser);
   showAppScreen(); render();
+}
+
+// ── FORGOT PASSWORD ──────────────────────────────────────────
+let _forgotUser = null;
+function forgotStep1(){
+  const username = document.getElementById('forgot-username').value.trim().toLowerCase();
+  const err = document.getElementById('forgot-error1');
+  err.style.display='none';
+  if(!username){ showErr(err,'Ingresa tu usuario'); return; }
+  const user = allUsers.find(u=>u.username===username);
+  if(!user){ showErr(err,'Usuario no encontrado'); return; }
+  if(!user.securityQuestion){ showErr(err,'Este usuario no tiene pregunta de seguridad configurada. Contacta al admin.'); return; }
+  _forgotUser = user;
+  document.getElementById('forgot-question-text').textContent = user.securityQuestionText || user.securityQuestion;
+  document.getElementById('forgot-step1').classList.add('hidden');
+  document.getElementById('forgot-step2').classList.remove('hidden');
+  document.getElementById('forgot-success').style.display='none';
+}
+
+function forgotStep2(){
+  const answer = document.getElementById('forgot-answer').value.trim().toLowerCase();
+  const newPwd = document.getElementById('forgot-new-password').value;
+  const confirmPwd = document.getElementById('forgot-confirm-password').value;
+  const err = document.getElementById('forgot-error2');
+  const succ = document.getElementById('forgot-success');
+  err.style.display='none'; succ.style.display='none';
+  if(!answer){ showErr(err,'Ingresa tu respuesta'); return; }
+  if(!newPwd||newPwd.length<6){ showErr(err,'La contraseña debe tener mínimo 6 caracteres'); return; }
+  if(newPwd!==confirmPwd){ showErr(err,'Las contraseñas no coinciden'); return; }
+  if(hashPwd(answer) !== _forgotUser.securityAnswerHash){ showErr(err,'Respuesta incorrecta'); return; }
+  // Update password
+  const idx = allUsers.findIndex(u=>u.username===_forgotUser.username);
+  allUsers[idx].passwordHash = hashPwd(newPwd);
+  save(STORAGE_KEYS.users, allUsers);
+  succ.style.display='block';
+  document.getElementById('forgot-answer').value='';
+  document.getElementById('forgot-new-password').value='';
+  document.getElementById('forgot-confirm-password').value='';
+}
+
+function forgotReset(){
+  _forgotUser = null;
+  document.getElementById('forgot-step1').classList.remove('hidden');
+  document.getElementById('forgot-step2').classList.add('hidden');
+  document.getElementById('forgot-username').value='';
+  document.getElementById('forgot-error1').style.display='none';
+  document.getElementById('forgot-error2').style.display='none';
+  document.getElementById('forgot-success').style.display='none';
 }
 
 function handleLogout(){
@@ -624,9 +747,21 @@ function handleLogout(){
 // ============================================================
 function switchAuthTab(tab, el){
   document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
+  if(el) el.classList.add('active');
   document.getElementById('login-form').classList.toggle('hidden', tab!=='login');
   document.getElementById('register-form').classList.toggle('hidden', tab!=='register');
+  document.getElementById('forgot-form').classList.toggle('hidden', tab!=='forgot');
+  // Reset forgot steps when switching away
+  if(tab!=='forgot') forgotReset();
+}
+
+function openForgotForm(){
+  // Show forgot form without activating any tab button
+  document.getElementById('login-form').classList.add('hidden');
+  document.getElementById('register-form').classList.add('hidden');
+  document.getElementById('forgot-form').classList.remove('hidden');
+  document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
+  forgotReset();
 }
 
 function showAuthScreen(){
@@ -1131,10 +1266,17 @@ function isMatchLocked(match){
   return false;
 }
 
+// Inline SVG Colombia flag (yellow/blue/red tricolor)
+const COL_FLAG = `<svg class="col-flag" width="22" height="15" viewBox="0 0 22 15" xmlns="http://www.w3.org/2000/svg" title="Colombia ×2+2pts">
+  <rect width="22" height="7.5" fill="#FCD116"/>
+  <rect y="7.5" width="22" height="3.75" fill="#003087"/>
+  <rect y="11.25" width="22" height="3.75" fill="#CE1126"/>
+</svg>`;
+
 function colorBadge(color){
   if(color==='grey') return '<span class="color-badge-grey" title="Gris: +2pts"></span>';
   if(color==='yellow') return '<span class="color-badge-yellow" title="Amarillo: ×2pts"></span>';
-  if(color==='colombia') return '🇨🇴';
+  if(color==='colombia') return COL_FLAG;
   return '';
 }
 
