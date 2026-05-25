@@ -250,7 +250,7 @@
       <button class="nav-tab active" onclick="switchTab('leaderboard',this)">🏆 Tabla</button>
       <button class="nav-tab" onclick="switchTab('matches',this)">📋 Mis bets</button>
       <button class="nav-tab" onclick="switchTab('all-matches',this)">⚽ Apostar</button>
-      <button class="nav-tab" onclick="switchTab('scorer',this)">🥅 Goleador</button>
+
       <button class="nav-tab hidden" id="admin-tab" onclick="switchTab('admin',this)">⚙️ Admin</button>
     </div>
 
@@ -274,10 +274,48 @@
 
     <!-- MIS PREDICCIONES -->
     <div id="matches-tab" class="tab-content hidden">
-      <div class="card">
+      <!-- Sub-tabs -->
+      <div class="auth-tabs" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
+        <button class="auth-tab active" id="mybets-sub-partidos" onclick="switchMyBetsTab('partidos',this)">⚽ Partidos</button>
+        <button class="auth-tab" id="mybets-sub-goleador" onclick="switchMyBetsTab('goleador',this)">🥅 Goleador</button>
+      </div>
+
+      <!-- Sub: Partidos -->
+      <div id="mybets-partidos" class="card">
         <div class="card-title">📋 Mis Predicciones</div>
         <div class="filter-group" id="my-pred-filter"></div>
         <div class="matches-grid" id="my-predictions-list"></div>
+      </div>
+
+      <!-- Sub: Goleador -->
+      <div id="mybets-goleador" class="hidden">
+        <div class="scorer-card">
+          <div class="card-title">🥅 Mi Predicción Goleador</div>
+          <div class="info-banner">
+            Predice el <strong>goleador del Mundial 2026</strong> y el número de goles.<br>
+            ⚠️ Solo puedes modificar <strong>antes del primer partido de Dieciseisavos</strong>. Después queda fijo.<br><br>
+            <strong>Puntos:</strong><br>
+            • Nombre + goles exactos: <strong>20 pts</strong><br>
+            • Solo nombre correcto: <strong>10 pts</strong><br>
+            • Solo número de goles exacto: <strong>25 pts</strong>
+          </div>
+          <div id="mybets-scorer-form">
+            <div class="form-group">
+              <label>Nombre del Goleador</label>
+              <input type="text" id="mybets-scorer-name" placeholder="Ej: Lionel Messi">
+            </div>
+            <div class="form-group">
+              <label>Número de Goles</label>
+              <input type="number" id="mybets-scorer-goals" min="1" placeholder="Ej: 8">
+            </div>
+            <button class="btn btn-gold" style="width:100%" onclick="saveScorer()">💾 Guardar Predicción Goleador</button>
+            <div class="error-msg" id="mybets-scorer-error"></div>
+          </div>
+          <div id="mybets-scorer-display" class="hidden" style="margin-top:1rem;padding:.75rem;background:var(--surface2);border-radius:var(--r);">
+            <div style="color:var(--muted);font-size:.7rem;margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.5px;">Tu predicción 🔒 bloqueada</div>
+            <strong id="mybets-scorer-display-name">—</strong> · <span id="mybets-scorer-display-goals">— goles</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -296,42 +334,6 @@
     </div>
 
     <!-- GOLEADOR -->
-    <div id="scorer-tab" class="tab-content hidden">
-      <div class="scorer-card" id="scorer-section">
-        <div class="card-title">🥅 Goleador del Mundial</div>
-        <div class="info-banner">
-          Predice el <strong>goleador del Mundial 2026</strong> y el número de goles.<br>
-          ⚠️ Solo puedes modificar <strong>antes del primer partido de Dieciseisavos</strong>. Después queda fijo.<br><br>
-          <strong>Puntos:</strong><br>
-          • Nombre + goles exactos: <strong>20 pts</strong><br>
-          • Solo nombre correcto: <strong>10 pts</strong><br>
-          • Solo número de goles exacto: <strong>25 pts</strong>
-        </div>
-        <div id="scorer-form">
-          <div class="form-group">
-            <label>Nombre del Goleador</label>
-            <input type="text" id="scorer-name" placeholder="Ej: Lionel Messi">
-          </div>
-          <div class="form-group">
-            <label>Número de Goles</label>
-            <input type="number" id="scorer-goals" min="1" placeholder="Ej: 8">
-          </div>
-          <button class="btn btn-gold" style="width:100%" onclick="saveScorer()">💾 Guardar Predicción Goleador</button>
-          <div class="error-msg" id="scorer-error"></div>
-        </div>
-        <div id="scorer-display" class="hidden" style="margin-top:1rem;padding:.75rem;background:var(--surface2);border-radius:var(--r);font-size:.9rem;">
-          <div style="color:var(--muted);font-size:.7rem;margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.5px;">Tu predicción (bloqueada)</div>
-          <strong id="scorer-display-name">—</strong> · <span id="scorer-display-goals">— goles</span>
-        </div>
-      </div>
-
-      <!-- Tabla de predicciones goleador -->
-      <div class="card">
-        <div class="card-title">Predicciones del Grupo</div>
-        <div id="scorer-predictions-list"></div>
-      </div>
-    </div>
-
     <!-- ADMIN -->
     <div id="admin-tab-content" class="tab-content hidden">
       <div class="admin-section">
@@ -790,13 +792,23 @@ function switchTab(name, el){
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   if(el) el.classList.add('active');
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.add('hidden'));
-  const map = {leaderboard:'leaderboard-tab', matches:'matches-tab', 'all-matches':'all-matches-tab', scorer:'scorer-tab', admin:'admin-tab-content'};
+  const map = {leaderboard:'leaderboard-tab', matches:'matches-tab', 'all-matches':'all-matches-tab', admin:'admin-tab-content'};
   document.getElementById(map[name]).classList.remove('hidden');
   if(name==='leaderboard') renderLeaderboard();
-  else if(name==='matches') renderMyPredictions();
+  else if(name==='matches'){ renderMyPredictions(); renderScorer(); }
   else if(name==='all-matches') renderAllMatches();
-  else if(name==='scorer') renderScorer();
   else if(name==='admin') renderAdminPanel();
+}
+
+let _myBetsSubTab = 'partidos';
+function switchMyBetsTab(sub, el){
+  _myBetsSubTab = sub;
+  document.querySelectorAll('[id^="mybets-sub-"]').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('mybets-partidos').classList.toggle('hidden', sub!=='partidos');
+  document.getElementById('mybets-goleador').classList.toggle('hidden', sub!=='goleador');
+  if(sub==='goleador') renderScorer();
+  else renderMyPredictions();
 }
 
 function showErr(el, msg){ el.textContent=msg; el.style.display='block'; }
@@ -1002,18 +1014,18 @@ function isR16Started(){
 function renderScorer(){
   const myPred = scorerPreds[currentUser.username];
   const locked = isR16Started();
-  const form = document.getElementById('scorer-form');
-  const display = document.getElementById('scorer-display');
+  const form = document.getElementById('mybets-scorer-form');
+  const display = document.getElementById('mybets-scorer-display');
+  if(!form) return;
 
   if(myPred && locked){
     form.classList.add('hidden');
     display.classList.remove('hidden');
-    document.getElementById('scorer-display-name').textContent = myPred.name;
-    document.getElementById('scorer-display-goals').textContent = myPred.goals+' goles';
+    document.getElementById('mybets-scorer-display-name').textContent = myPred.name;
+    document.getElementById('mybets-scorer-display-goals').textContent = myPred.goals+' goles';
   } else if(myPred && !locked){
-    // Puede editar, prellenar
-    document.getElementById('scorer-name').value = myPred.name;
-    document.getElementById('scorer-goals').value = myPred.goals;
+    document.getElementById('mybets-scorer-name').value = myPred.name;
+    document.getElementById('mybets-scorer-goals').value = myPred.goals;
     form.classList.remove('hidden');
     display.classList.add('hidden');
   } else if(locked){
@@ -1024,30 +1036,13 @@ function renderScorer(){
     display.classList.add('hidden');
   }
 
-  // Tabla de predicciones de todos
-  const preds = Object.keys(scorerPreds).map(u=>{
-    const user = allUsers.find(x=>x.username===u);
-    if(!user) return null;
-    return {name:user.name, ...scorerPreds[u]};
-  }).filter(Boolean);
 
-  let listHtml = '';
-  if(!preds.length){
-    listHtml = '<p style="color:var(--muted);font-size:.85rem;text-align:center;padding:1rem 0">Nadie ha ingresado su goleador aún.</p>';
-  } else {
-    listHtml = preds.map(p=>`
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px">
-        <span style="font-weight:600;font-size:.85rem">${p.name}</span>
-        <span style="font-family:'Barlow Condensed',sans-serif;color:var(--gold)">${locked?`${p.name} · ${p.goals} goles`:'⭐ ingresado'}</span>
-      </div>`).join('');
-  }
-  document.getElementById('scorer-predictions-list').innerHTML = listHtml;
 }
 
 function saveScorer(){
-  const name = document.getElementById('scorer-name').value.trim();
-  const goals = parseInt(document.getElementById('scorer-goals').value);
-  const err = document.getElementById('scorer-error');
+  const name = document.getElementById('mybets-scorer-name').value.trim();
+  const goals = parseInt(document.getElementById('mybets-scorer-goals').value);
+  const err = document.getElementById('mybets-scorer-error');
   err.style.display='none';
   if(!name){ showErr(err,'Ingresa el nombre del goleador'); return; }
   if(isNaN(goals)||goals<1){ showErr(err,'Ingresa un número de goles válido'); return; }
