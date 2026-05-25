@@ -325,14 +325,6 @@
         </div>
       </div>
 
-      <!-- Admin: registrar goleador oficial -->
-      <div id="scorer-admin-section" class="hidden admin-section">
-        <div class="card-title">⚙️ Registrar Goleador Oficial</div>
-        <div class="form-group"><label>Goleador Oficial</label><input type="text" id="official-scorer-name" placeholder="Nombre oficial"></div>
-        <div class="form-group"><label>Goles Totales</label><input type="number" id="official-scorer-goals" min="0" placeholder="0"></div>
-        <button class="btn btn-gold" style="width:100%" onclick="registerOfficialScorer()">Calcular Puntos Goleador</button>
-      </div>
-
       <!-- Tabla de predicciones goleador -->
       <div class="card">
         <div class="card-title">Predicciones del Grupo</div>
@@ -354,6 +346,14 @@
         <div class="card-title">⏰ Fechas Límite por Fase</div>
         <div id="deadline-categories" style="display:flex;flex-direction:column;gap:1rem;"></div>
         <button class="btn btn-gold" style="width:100%;margin-top:1rem" onclick="saveAllDeadlines()">💾 Guardar Fechas</button>
+      </div>
+
+      <div class="admin-section">
+        <div class="card-title">🥅 Goleador Oficial del Mundial</div>
+        <div class="info-banner">Registra el goleador oficial al final del torneo para calcular los puntos automáticamente.</div>
+        <div class="form-group"><label>Nombre del Goleador Oficial</label><input type="text" id="official-scorer-name" placeholder="Nombre oficial"></div>
+        <div class="form-group"><label>Goles Totales</label><input type="number" id="official-scorer-goals" min="0" placeholder="0"></div>
+        <button class="btn btn-gold" style="width:100%" onclick="registerOfficialScorer()">Calcular Puntos Goleador ✓</button>
       </div>
 
       <div class="admin-section">
@@ -639,6 +639,7 @@ function handleLogin(){
   if(!username||!password){ showErr(err,'Usuario y contraseña requeridos'); return; }
   const user = allUsers.find(u=>u.username===username && u.passwordHash===hashPwd(password));
   if(!user){ showErr(err,'Credenciales incorrectas'); return; }
+  if(user.disabled){ showErr(err,'Tu cuenta está desactivada. Contacta al admin.'); return; }
   currentUser = user;
   save(STORAGE_KEYS.currentUser, currentUser);
   showAppScreen(); render();
@@ -777,7 +778,6 @@ function showAppScreen(){
   if(currentUser.isAdmin){
     document.getElementById('admin-crown').classList.remove('hidden');
     document.getElementById('admin-tab').classList.remove('hidden');
-    document.getElementById('scorer-admin-section').classList.remove('hidden');
   }
 }
 
@@ -845,10 +845,12 @@ function computeMatchPoints(predHome, predAway, actualHome, actualAway, stage, c
 // LEADERBOARD
 // ============================================================
 function renderLeaderboard(){
-  const rankings = allUsers.map(u=>({
-    name:u.name, username:u.username,
-    points:(allScores[u.username]||0)
-  })).sort((a,b)=>b.points-a.points);
+  const rankings = allUsers
+    .filter(u=>!u.disabled)
+    .map(u=>({
+      name:u.name, username:u.username,
+      points:(allScores[u.username]||0)
+    })).sort((a,b)=>b.points-a.points);
 
   const myRank = rankings.findIndex(r=>r.username===currentUser.username)+1;
   const myPoints = allScores[currentUser.username]||0;
@@ -1094,13 +1096,22 @@ function renderAdminPanel(){
 }
 
 function renderAuthorizedUsersList(){
+  const disabledUsers = allUsers.filter(u=>u.disabled);
+  const activeHtml = authorizedUsers.map(n=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r)">
+      <span style="font-size:.85rem">✅ ${n}</span>
+      <button class="btn btn-danger btn-sm" onclick="removeAuthorizedUser('${n}')">Desactivar</button>
+    </div>`).join('');
+  const disabledHtml = disabledUsers.length ? `
+    <div style="font-size:.75rem;color:var(--muted);margin:.75rem 0 .4rem;font-weight:600;text-transform:uppercase">Desactivados:</div>` +
+    disabledUsers.map(u=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;background:rgba(255,23,68,0.05);border:1px solid rgba(255,23,68,0.2);border-radius:var(--r)">
+        <span style="font-size:.85rem;color:var(--muted)">🚫 ${u.name}</span>
+        <button class="btn btn-sm" style="background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);color:var(--green)" onclick="reactivateUser('${u.name}')">Reactivar</button>
+      </div>`).join('') : '';
   document.getElementById('authorized-users-list').innerHTML =
-    '<div style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem;font-weight:600;text-transform:uppercase">Autorizados ('+authorizedUsers.length+'):</div>' +
-    authorizedUsers.map(n=>`
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r)">
-        <span style="font-size:.85rem">${n}</span>
-        <button class="btn btn-danger btn-sm" onclick="removeAuthorizedUser('${n}')">✕</button>
-      </div>`).join('');
+    `<div style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem;font-weight:600;text-transform:uppercase">Activos (${authorizedUsers.length}):</div>` +
+    activeHtml + disabledHtml;
 }
 
 function addAuthorizedUser(){
@@ -1115,10 +1126,30 @@ function addAuthorizedUser(){
 }
 
 function removeAuthorizedUser(name){
-  if(!confirm(`¿Remover a "${name}"?`)) return;
+  if(!confirm(`¿Desactivar a "${name}"?\n\nEste usuario quedará desactivado y no aparecerá en la tabla ni podrá apostar.`)) return;
   authorizedUsers = authorizedUsers.filter(u=>u!==name);
+  // Desactivar también en allUsers
+  allUsers = allUsers.map(u => {
+    if(u.name.toLowerCase()===name.toLowerCase()) return {...u, disabled:true};
+    return u;
+  });
   save(STORAGE_KEYS.authorized, authorizedUsers);
+  save(STORAGE_KEYS.users, allUsers);
   renderAuthorizedUsersList();
+  renderLeaderboard();
+}
+
+function reactivateUser(name){
+  if(!confirm(`¿Reactivar a "${name}"?`)) return;
+  authorizedUsers.push(name);
+  allUsers = allUsers.map(u => {
+    if(u.name.toLowerCase()===name.toLowerCase()) return {...u, disabled:false};
+    return u;
+  });
+  save(STORAGE_KEYS.authorized, authorizedUsers);
+  save(STORAGE_KEYS.users, allUsers);
+  renderAuthorizedUsersList();
+  renderLeaderboard();
 }
 
 function renderDeadlineCategories(){
