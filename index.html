@@ -577,7 +577,7 @@ async function initializeData(){
     db.ref('authorized').on('value',  s=>{ authorized=s.val()||{};     if(_currentTab==='admin') renderAuthorizedUsersList(); });
     db.ref('scores').on('value',      s=>{ allScores=s.val()||{};      if(_currentTab==='leaderboard') renderLeaderboard(); });
     db.ref('predictions').on('value', s=>{ allPredictions=s.val()||{}; });
-    db.ref('deadlines').on('value',   s=>{ deadlines=s.val()||{};      });
+    db.ref('deadlines').on('value', s=>{   deadlines = s.val() || {};   if(_currentTab === 'all-matches') renderAllMatches();   if(_currentTab === 'matches') renderMyPredictions(); });
     db.ref('scorerPreds').on('value', s=>{ scorerPreds=s.val()||{};    });
     db.ref('matches').on('value',     s=>{
       allMatches = buildMatchList(s.val());
