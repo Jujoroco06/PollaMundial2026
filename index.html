@@ -7,7 +7,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
@@ -27,7 +26,6 @@
       background:radial-gradient(ellipse 70% 50% at 15% -5%,rgba(0,230,118,0.09) 0%,transparent 65%),
                  radial-gradient(ellipse 60% 50% at 85% 105%,rgba(255,215,64,0.07) 0%,transparent 65%);}
 
-    /* LOADING */
     #loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:1rem;}
     .spinner{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;}
     @keyframes spin{to{transform:rotate(360deg)}}
@@ -59,7 +57,6 @@
     .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rL);padding:1rem;margin-bottom:1rem;}
     .card-title{font-family:'Barlow Condensed',sans-serif;font-size:1.15rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:1rem;color:var(--text);}
 
-    /* AUTH */
     #auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem;}
     .auth-box{width:100%;max-width:380px;}
     .auth-logo{text-align:center;margin-bottom:2rem;}
@@ -81,7 +78,6 @@
     .info-banner{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:.75rem 1rem;font-size:.76rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;}
     .info-banner strong{color:var(--green);}
 
-    /* STATS & LEADERBOARD */
     .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-bottom:1.25rem;}
     .stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:.85rem;text-align:center;}
     .stat-val{font-family:'Barlow Condensed',sans-serif;font-size:1.9rem;font-weight:700;color:var(--green);line-height:1;}
@@ -96,7 +92,6 @@
     .lb-info{display:flex;align-items:center;gap:7px;font-weight:600;font-size:.82rem;}
     .lb-pts{font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:700;color:var(--green);text-align:right;}
 
-    /* MATCHES */
     .matches-grid{display:flex;flex-direction:column;gap:8px;}
     .match-card{background:var(--surface2);border:2px solid var(--border);border-radius:var(--r);padding:.9rem;transition:all .15s;}
     .match-card.locked{opacity:.65;}
@@ -127,23 +122,18 @@
     .pred-correct{background:rgba(0,230,118,0.12);color:var(--green);}
     .pred-wrong{background:rgba(255,23,68,0.1);color:var(--red);}
 
-    /* FILTERS */
     .filter-group{display:flex;gap:6px;margin-bottom:1rem;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:.4rem;scrollbar-width:none;}
     .filter-group::-webkit-scrollbar{display:none;}
     .filter-btn{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:.72rem;font-weight:600;transition:all .15s;white-space:nowrap;flex-shrink:0;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;text-transform:uppercase;}
     .filter-btn.active{background:var(--green);color:#0c0e14;border-color:var(--green);}
 
-    /* LEGEND */
     .legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;}
     .legend-item{display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--muted);background:var(--surface2);padding:4px 10px;border-radius:20px;border:1px solid var(--border);}
 
-    /* SCORER */
     .scorer-card{background:linear-gradient(135deg,rgba(255,215,64,0.08),rgba(0,230,118,0.05));border:1px solid rgba(255,215,64,0.3);border-radius:var(--rL);padding:1rem;margin-bottom:1rem;}
 
-    /* ADMIN */
     .admin-section{background:rgba(255,215,64,0.04);border:1px solid rgba(255,215,64,0.15);border-radius:var(--rL);padding:1rem;margin-bottom:1.25rem;}
 
-    /* MODAL */
     .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:flex-end;}
     .modal.active{display:flex;}
     .modal-content{background:var(--surface);width:100%;height:100%;display:flex;flex-direction:column;overflow-y:auto;padding:1.5rem 1rem;}
@@ -165,13 +155,11 @@
 </head>
 <body>
 
-<!-- LOADING -->
 <div id="loading-screen">
   <div class="spinner"></div>
   <div class="loading-txt">Conectando...</div>
 </div>
 
-<!-- AUTH -->
 <div id="auth-screen" class="app hidden">
   <div class="auth-box">
     <div class="auth-logo">
@@ -183,7 +171,6 @@
       <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register',this)">Registro</button>
     </div>
 
-    <!-- LOGIN -->
     <div id="login-form" class="card">
       <div class="form-group"><label>Usuario</label><input type="text" id="login-username" placeholder="Tu usuario" autocomplete="username"></div>
       <div class="form-group"><label>Contraseña</label><input type="password" id="login-password" placeholder="Tu contraseña" autocomplete="current-password"></div>
@@ -192,7 +179,6 @@
       <span class="forgot-link" onclick="openForgotForm()">¿Olvidaste tu contraseña?</span>
     </div>
 
-    <!-- REGISTRO -->
     <div id="register-form" class="card hidden">
       <div class="info-banner">⚠️ Tu <strong>nombre completo exacto</strong> debe estar en la lista del admin.</div>
       <div class="form-group"><label>Nombre Completo</label><input type="text" id="register-name" placeholder="Ej: Juan García" autocomplete="name"></div>
@@ -219,7 +205,6 @@
       <div class="error-msg" id="register-error"></div>
     </div>
 
-    <!-- OLVIDÉ -->
     <div id="forgot-form" class="card hidden">
       <div class="info-banner">Responde tu pregunta de seguridad para <strong>restablecer tu contraseña</strong>.</div>
       <div id="forgot-step1">
@@ -244,7 +229,6 @@
   </div>
 </div>
 
-<!-- APP -->
 <div id="app-screen" class="app hidden">
   <header>
     <div class="logo">⚽ <span>García 2026</span></div>
@@ -267,7 +251,6 @@
       <button class="nav-tab hidden" id="admin-tab" onclick="switchTab('admin',this)">⚙️ Admin</button>
     </div>
 
-    <!-- LEADERBOARD -->
     <div id="leaderboard-tab" class="tab-content">
       <div class="card">
         <div class="card-title">🏆 Clasificación</div>
@@ -285,21 +268,16 @@
       </div>
     </div>
 
-    <!-- MIS BETS -->
     <div id="matches-tab" class="tab-content hidden">
       <div class="auth-tabs" style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem">
         <button class="auth-tab active" id="mybets-sub-partidos" onclick="switchMyBetsTab('partidos',this)">⚽ Partidos</button>
         <button class="auth-tab" id="mybets-sub-goleador" onclick="switchMyBetsTab('goleador',this)">🥅 Goleador</button>
       </div>
-
-      <!-- Partidos -->
       <div id="mybets-partidos" class="card">
         <div class="card-title">📋 Mis Predicciones</div>
         <div class="filter-group" id="my-pred-filter"></div>
         <div class="matches-grid" id="my-predictions-list"></div>
       </div>
-
-      <!-- Goleador -->
       <div id="mybets-goleador" class="hidden">
         <div class="scorer-card">
           <div class="card-title">🥅 Mi Predicción Goleador</div>
@@ -322,7 +300,6 @@
       </div>
     </div>
 
-    <!-- APOSTAR -->
     <div id="all-matches-tab" class="tab-content hidden">
       <div class="card">
         <div class="card-title">⚽ Apostar</div>
@@ -336,8 +313,24 @@
       </div>
     </div>
 
-    <!-- ADMIN -->
     <div id="admin-tab-content" class="tab-content hidden">
+
+      <!-- NUEVA SECCIÓN: GESTIONAR ADMINS -->
+      <div class="admin-section">
+        <div class="card-title">👑 Gestionar Administradores</div>
+        <div class="info-banner">Selecciona un usuario registrado para <strong>otorgarle o quitarle</strong> el rol de administrador.</div>
+        <div class="form-group">
+          <label>Usuario Registrado</label>
+          <select id="admin-role-select">
+            <option value="">— Selecciona un usuario —</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-top:.5rem">
+          <button class="btn btn-gold" onclick="grantAdmin()">👑 Dar Admin</button>
+          <button class="btn btn-danger" onclick="revokeAdmin()">✕ Quitar Admin</button>
+        </div>
+        <div class="error-msg" id="admin-role-error"></div>
+      </div>
 
       <div class="admin-section">
         <div class="card-title">⚙️ Usuarios Autorizados</div>
@@ -370,7 +363,6 @@
   </div>
 </div>
 
-<!-- MODAL RESULTADO -->
 <div id="result-modal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -388,9 +380,6 @@
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════
-// FIREBASE CONFIG - CONEXIÓN COMPLETA
-// ═══════════════════════════════════════════════════════
 const firebaseConfig = {
   apiKey: "AIzaSyB91PswJIsYZDtD9tUfGrKd7K7lK-Ncn2Y",
   authDomain: "polla-mundial-b094d.firebaseapp.com",
@@ -404,9 +393,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ═══════════════════════════════════════════════════════
-// PUNTOS
-// ═══════════════════════════════════════════════════════
 const STAGE_POINTS = {
   'Grupos':       { exact:5,  correct:3  },
   'Dieciseisavos':{ exact:10, correct:7  },
@@ -429,9 +415,6 @@ const QUESTIONS = {
   apodo:'¿Cuál es tu apodo de la infancia?'
 };
 
-// ═══════════════════════════════════════════════════════
-// PARTIDOS
-// ═══════════════════════════════════════════════════════
 const WORLD_CUP_MATCHES = [
   {n:1,home:"México",away:"Sudáfrica",date:"2026-06-11",stage:"Grupos",group:"A",color:"normal"},
   {n:2,home:"Egipto",away:"Uruguay",date:"2026-06-11",stage:"Grupos",group:"A",color:"normal"},
@@ -539,20 +522,16 @@ const WORLD_CUP_MATCHES = [
   {n:104,home:"Ganador SF1",away:"Ganador SF2",date:"2026-07-19",stage:"Final",group:"",color:"normal"},
 ];
 
-// ═══════════════════════════════════════════════════════
-// ESTADO
-// ═══════════════════════════════════════════════════════
 let currentUser = null;
-let allUsers = {};       // { username: userObj }
-let authorized = {};     // { name: true }
-let allMatches = {};     // { matchId: matchObj }  — from Firebase
-let allPredictions = {}; // { matchId: { username: {home,away} } }
-let allScores = {};      // { username: points }
-let deadlines = {};      // { stage: isoString }
-let scorerPreds = {};    // { username: {name, goals} }
+let allUsers = {};
+let authorized = {};
+let allMatches = {};
+let allPredictions = {};
+let allScores = {};
+let deadlines = {};
+let scorerPreds = {};
 let officialScorer = null;
 
-// Helper: build allMatches base from WORLD_CUP_MATCHES merged with Firebase data
 function buildMatchList(fbMatches) {
   const result = {};
   WORLD_CUP_MATCHES.forEach(m => {
@@ -569,24 +548,16 @@ function buildMatchList(fbMatches) {
   return result;
 }
 
-// ═══════════════════════════════════════════════════════
-// FIREBASE HELPERS
-// ═══════════════════════════════════════════════════════
 function fbSet(path, value){ return db.ref(path).set(value); }
 function fbUpdate(path, value){ return db.ref(path).update(value); }
 function fbGet(path){ return db.ref(path).get().then(s=>s.val()); }
 
-// ═══════════════════════════════════════════════════════
-// INIT — carga datos y arranca listeners en tiempo real
-// ═══════════════════════════════════════════════════════
 async function initializeData(){
-  // Monitor connection
   db.ref('.info/connected').on('value', snap => {
     document.getElementById('sync-dot').classList.toggle('on', snap.val()===true);
   });
 
   try {
-    // Carga inicial paralela
     const [fbUsers, fbAuth, fbMatches, fbPreds, fbScores, fbDeadlines, fbScorer, fbOfficial] = await Promise.all([
       fbGet('users'), fbGet('authorized'), fbGet('matches'),
       fbGet('predictions'), fbGet('scores'), fbGet('deadlines'),
@@ -602,8 +573,7 @@ async function initializeData(){
     scorerPreds   = fbScorer     || {};
     officialScorer= fbOfficial   || null;
 
-    // Listeners en tiempo real (actualizan UI automáticamente)
-    db.ref('users').on('value',       s=>{ allUsers=s.val()||{};       if(_currentTab==='admin') renderAuthorizedUsersList(); });
+    db.ref('users').on('value',       s=>{ allUsers=s.val()||{};       if(_currentTab==='admin') renderAuthorizedUsersList(); populateAdminRoleSelect(); });
     db.ref('authorized').on('value',  s=>{ authorized=s.val()||{};     if(_currentTab==='admin') renderAuthorizedUsersList(); });
     db.ref('scores').on('value',      s=>{ allScores=s.val()||{};      if(_currentTab==='leaderboard') renderLeaderboard(); });
     db.ref('predictions').on('value', s=>{ allPredictions=s.val()||{}; });
@@ -616,7 +586,6 @@ async function initializeData(){
       if(_currentTab==='admin') renderAdminMatches();
     });
 
-    // Sesión local
     loadCurrentUser();
 
   } catch(err){
@@ -629,9 +598,6 @@ async function initializeData(){
   else{ showAuthScreen(); }
 }
 
-// ═══════════════════════════════════════════════════════
-// AUTH
-// ═══════════════════════════════════════════════════════
 function hashPwd(p){ return CryptoJS.SHA256('mundial2026_'+p).toString(); }
 
 function loadCurrentUser(){
@@ -652,7 +618,6 @@ async function handleLogin(){
   err.style.display='none';
   if(!username||!password){ showErr(err,'Usuario y contraseña requeridos'); return; }
 
-  // Recargar users frescos de Firebase
   const users = await fbGet('users');
   allUsers = users || {};
   const user = allUsers[username];
@@ -680,11 +645,9 @@ async function handleRegister(){
   if(password!==confirm){ showErr(err,'Las contraseñas no coinciden'); return; }
   if(password.length<6){ showErr(err,'Mínimo 6 caracteres'); return; }
 
-  // PRIMER USUARIO: si no hay usuarios en la BD, este será ADMIN
   const existingUsers = await fbGet('users');
   const isFirstUser = !existingUsers || Object.keys(existingUsers).length === 0;
-  
-  // Verificar autorización (si no es el primer usuario)
+
   if(!isFirstUser){
     const auth = await fbGet('authorized');
     const authKeys = Object.keys(auth||{});
@@ -697,7 +660,7 @@ async function handleRegister(){
   const newUser = {
     name, username,
     passwordHash: hashPwd(password),
-    isAdmin: isFirstUser,  // El primer usuario es ADMIN
+    isAdmin: isFirstUser,
     disabled: false,
     createdAt: new Date().toISOString(),
     securityQuestion: secQ,
@@ -707,12 +670,11 @@ async function handleRegister(){
 
   await fbSet(`users/${username}`, newUser);
   allUsers[username] = newUser;
-  
-  // Si es el primer usuario, también lo agregamos a la lista de autorizados
+
   if(isFirstUser){
     await fbSet(`authorized/${name.replace(/[.#$[\]]/g,'_')}`, true);
   }
-  
+
   currentUser = newUser;
   localStorage.setItem('mw26_session', JSON.stringify({username}));
   showAppScreen(); render();
@@ -767,9 +729,6 @@ function handleLogout(){
   showAuthScreen();
 }
 
-// ═══════════════════════════════════════════════════════
-// UI
-// ═══════════════════════════════════════════════════════
 function switchAuthTab(tab,el){
   document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
   if(el) el.classList.add('active');
@@ -810,7 +769,7 @@ function switchTab(name,el){
   const map={leaderboard:'leaderboard-tab',matches:'matches-tab','all-matches':'all-matches-tab',admin:'admin-tab-content'};
   document.getElementById(map[name]).classList.remove('hidden');
   if(name==='leaderboard') renderLeaderboard();
-  else if(name==='matches'){ renderMyPredictions(); }
+  else if(name==='matches') renderMyPredictions();
   else if(name==='all-matches') renderAllMatches();
   else if(name==='admin') renderAdminPanel();
 }
@@ -826,9 +785,6 @@ function switchMyBetsTab(sub,el){
   else renderMyPredictions();
 }
 
-// ═══════════════════════════════════════════════════════
-// PUNTOS
-// ═══════════════════════════════════════════════════════
 function computeMatchPoints(predHome,predAway,actualHome,actualAway,stage,color){
   const pts = STAGE_POINTS[stage]||STAGE_POINTS['Grupos'];
   const pH=parseInt(predHome),pA=parseInt(predAway),aH=parseInt(actualHome),aA=parseInt(actualAway);
@@ -846,9 +802,6 @@ function computeMatchPoints(predHome,predAway,actualHome,actualAway,stage,color)
   return {points:final,label};
 }
 
-// ═══════════════════════════════════════════════════════
-// LEADERBOARD
-// ═══════════════════════════════════════════════════════
 function renderLeaderboard(){
   const rankings = Object.values(allUsers)
     .filter(u=>!u.disabled)
@@ -869,9 +822,6 @@ function renderLeaderboard(){
     </div>`).join('') || '<p style="color:var(--muted);text-align:center;padding:2rem">Aún no hay participantes.</p>';
 }
 
-// ═══════════════════════════════════════════════════════
-// MIS PREDICCIONES
-// ═══════════════════════════════════════════════════════
 let _myPredStage='Grupos';
 function renderMyPredictions(){
   const stages=[...new Set(WORLD_CUP_MATCHES.map(m=>m.stage))];
@@ -915,9 +865,6 @@ function filterMyPred(stage,el){
   renderMyPredictions();
 }
 
-// ═══════════════════════════════════════════════════════
-// APOSTAR
-// ═══════════════════════════════════════════════════════
 let _allMatchesStage='Grupos';
 function renderAllMatches(){
   const stages=[...new Set(WORLD_CUP_MATCHES.map(m=>m.stage))];
@@ -975,9 +922,6 @@ async function savePred(matchId){
   renderAllMatches();
 }
 
-// ═══════════════════════════════════════════════════════
-// GOLEADOR
-// ═══════════════════════════════════════════════════════
 function isR16Started(){
   const r16=Object.values(allMatches).filter(m=>m.stage==='Dieciseisavos');
   if(r16.some(m=>m.status==='finished')) return true;
@@ -1037,15 +981,56 @@ async function registerOfficialScorer(){
   alert(`✅ Goleador oficial: ${name} (${goals} goles). Puntos calculados.`);
 }
 
-// ═══════════════════════════════════════════════════════
-// ADMIN
-// ═══════════════════════════════════════════════════════
 function renderAdminPanel(){
-  if(!currentUser?.isAdmin){ document.getElementById('admin-tab-content').innerHTML='<div class="card" style="text-align:center;padding:3rem">❌ Acceso restringido</div>'; return; }
+  if(!currentUser?.isAdmin){
+    document.getElementById('admin-tab-content').innerHTML='<div class="card" style="text-align:center;padding:3rem">❌ Acceso restringido</div>';
+    return;
+  }
   renderAuthorizedUsersList();
   renderDeadlineCategories();
   renderAdminMatches();
+  populateAdminRoleSelect();
 }
+
+function populateAdminRoleSelect(){
+  const sel = document.getElementById('admin-role-select');
+  if(!sel) return;
+  const others = Object.values(allUsers)
+    .filter(u => u.username !== currentUser.username && !u.disabled);
+  sel.innerHTML = '<option value="">— Selecciona un usuario —</option>' +
+    others.map(u =>
+      `<option value="${u.username}">${u.name} (${u.username})${u.isAdmin?' 👑':''}</option>`
+    ).join('');
+}
+
+async function grantAdmin(){
+  const username = document.getElementById('admin-role-select').value;
+  const err = document.getElementById('admin-role-error');
+  err.style.display = 'none';
+  if(!username){ showErr(err,'Selecciona un usuario'); return; }
+  const target = allUsers[username];
+  if(!target){ showErr(err,'Usuario no encontrado'); return; }
+  if(!confirm(`¿Dar rol de administrador a "${target.name}"?`)) return;
+  await fbUpdate(`users/${username}`, {isAdmin: true});
+  allUsers[username].isAdmin = true;
+  populateAdminRoleSelect();
+  alert(`✅ ${target.name} ahora es administrador.`);
+}
+
+async function revokeAdmin(){
+  const username = document.getElementById('admin-role-select').value;
+  const err = document.getElementById('admin-role-error');
+  err.style.display = 'none';
+  if(!username){ showErr(err,'Selecciona un usuario'); return; }
+  const target = allUsers[username];
+  if(!target){ showErr(err,'Usuario no encontrado'); return; }
+  if(!confirm(`¿Quitar el rol de administrador a "${target.name}"?`)) return;
+  await fbUpdate(`users/${username}`, {isAdmin: false});
+  allUsers[username].isAdmin = false;
+  populateAdminRoleSelect();
+  alert(`✅ ${target.name} ya no es administrador.`);
+}
+
 function renderAuthorizedUsersList(){
   const authNames=Object.keys(authorized||{});
   const disabledUsers=Object.values(allUsers).filter(u=>u.disabled);
@@ -1075,7 +1060,6 @@ async function addAuthorizedUser(){
 async function removeAuthorizedUser(name){
   if(!confirm(`¿Desactivar a "${name}"?\n\nNo podrá iniciar sesión ni aparecerá en la tabla.`)) return;
   await db.ref(`authorized/${name.replace(/[.#$[\]]/g,'_')}`).remove();
-  // Desactivar usuario si existe
   const users=await fbGet('users')||{};
   const match=Object.values(users).find(u=>u.name.toLowerCase()===name.toLowerCase());
   if(match) await fbUpdate(`users/${match.username}`,{disabled:true});
@@ -1161,10 +1145,8 @@ async function handleRegisterResult(){
   if(isNaN(home)||isNaN(away)){ showErr(err,'Ingresa números válidos'); return; }
 
   const match=allMatches[matchId];
-  // Guardar resultado en Firebase
   await fbUpdate(`matches/${matchId}`,{scoreHome:home,scoreAway:away,status:'finished'});
 
-  // Calcular y guardar puntos
   const preds=allPredictions[matchId]||{};
   const scoreUpdates={};
   Object.keys(preds).forEach(username=>{
@@ -1204,9 +1186,6 @@ function showPointsDetail(matchId){
   alert(text);
 }
 
-// ═══════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════
 function isMatchLocked(match){
   if(match.status==='finished') return true;
   const dl=deadlines[match.stage];
@@ -1222,9 +1201,6 @@ function colorBadge(color){
 }
 function render(){ renderLeaderboard(); }
 
-// ═══════════════════════════════════════════════════════
-// START
-// ═══════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', initializeData);
 </script>
 </body>
