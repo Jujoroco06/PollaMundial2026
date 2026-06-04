@@ -1043,7 +1043,7 @@ function renderLeaderboard(){
   document.getElementById('leaderboard-list').innerHTML = rankings.map((r,i)=>`
     <div class="lb-row ${r.username===currentUser.username?'me':''} ${i===0?'rank-1':''}">
       <div class="rank-num">${medals[i]||i+1}</div>
-      <div class="lb-info"><div class="lb-av">${r.name[0].toUpperCase()}</div><span>${r.name}</span></div>
+      <div class="lb-info"><div class="lb-av">${r.username[0].toUpperCase()}</div><span>${r.username}</span></div>
       <div class="lb-pts">${r.points}</div>
     </div>`).join('') || '<p style="color:var(--muted);text-align:center;padding:2rem">Aún no hay participantes.</p>';
 }
