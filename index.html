@@ -366,112 +366,7 @@ const QUESTIONS = {
   apodo:'¿Cuál es tu apodo de la infancia?'
 };
 
-const WORLD_CUP_MATCHES = [
-  {n:1, home:"México",          away:"Sudáfrica",         date:"2026-06-11", stage:"Grupos", group:"A", color:"normal"},
-  {n:2, home:"Corea del Sur",   away:"Rep. Checa",        date:"2026-06-11", stage:"Grupos", group:"A", color:"normal"},
-  {n:3, home:"Canadá",          away:"Bosnia-Herz.",      date:"2026-06-12", stage:"Grupos", group:"B", color:"grey"},
-  {n:4, home:"EEUU",            away:"Paraguay",          date:"2026-06-12", stage:"Grupos", group:"D", color:"normal"},
-  {n:5, home:"Qatar",           away:"Suiza",             date:"2026-06-13", stage:"Grupos", group:"B", color:"normal"},
-  {n:6, home:"Brasil",          away:"Marruecos",         date:"2026-06-13", stage:"Grupos", group:"C", color:"normal"},
-  {n:7, home:"Haití",           away:"Escocia",           date:"2026-06-13", stage:"Grupos", group:"C", color:"yellow"},
-  {n:8, home:"Australia",       away:"Turquía",           date:"2026-06-13", stage:"Grupos", group:"D", color:"normal"},
-  {n:9, home:"Alemania",        away:"Curazao",           date:"2026-06-14", stage:"Grupos", group:"E", color:"normal"},
-  {n:10,home:"Países Bajos",    away:"Japón",             date:"2026-06-14", stage:"Grupos", group:"F", color:"normal"},
-  {n:11,home:"Costa de Marfil", away:"Ecuador",           date:"2026-06-14", stage:"Grupos", group:"E", color:"yellow"},
-  {n:12,home:"Suecia",          away:"Túnez",             date:"2026-06-14", stage:"Grupos", group:"F", color:"normal"},
-  {n:13,home:"España",          away:"Cabo Verde",        date:"2026-06-15", stage:"Grupos", group:"H", color:"normal"},
-  {n:14,home:"Bélgica",         away:"Egipto",            date:"2026-06-15", stage:"Grupos", group:"G", color:"normal"},
-  {n:15,home:"Arabia Saudí",    away:"Uruguay",           date:"2026-06-15", stage:"Grupos", group:"H", color:"yellow"},
-  {n:16,home:"Irán",            away:"Nueva Zelanda",     date:"2026-06-15", stage:"Grupos", group:"G", color:"normal"},
-  {n:17,home:"Francia",         away:"Senegal",           date:"2026-06-16", stage:"Grupos", group:"I", color:"grey"},
-  {n:18,home:"Irak",            away:"Noruega",           date:"2026-06-16", stage:"Grupos", group:"I", color:"normal"},
-  {n:19,home:"Argentina",       away:"Argelia",           date:"2026-06-16", stage:"Grupos", group:"J", color:"grey"},
-  {n:20,home:"Austria",         away:"Jordania",          date:"2026-06-16", stage:"Grupos", group:"J", color:"normal"},
-  {n:21,home:"Portugal",        away:"RD de Congo",       date:"2026-06-17", stage:"Grupos", group:"K", color:"normal"},
-  {n:22,home:"Inglaterra",      away:"Croacia",           date:"2026-06-17", stage:"Grupos", group:"L", color:"normal"},
-  {n:23,home:"Ghana",           away:"Panamá",            date:"2026-06-17", stage:"Grupos", group:"L", color:"normal"},
-  {n:24,home:"Uzbekistán",      away:"Colombia",          date:"2026-06-17", stage:"Grupos", group:"K", color:"colombia"},
-  {n:25,home:"Rep. Checa",      away:"Sudáfrica",         date:"2026-06-18", stage:"Grupos", group:"A", color:"normal"},
-  {n:26,home:"Suiza",           away:"Bosnia-Herz.",      date:"2026-06-18", stage:"Grupos", group:"B", color:"normal"},
-  {n:27,home:"Canadá",          away:"Qatar",             date:"2026-06-18", stage:"Grupos", group:"B", color:"normal"},
-  {n:28,home:"México",          away:"Corea del Sur",     date:"2026-06-18", stage:"Grupos", group:"A", color:"normal"},
-  {n:29,home:"EEUU",            away:"Australia",         date:"2026-06-19", stage:"Grupos", group:"D", color:"normal"},
-  {n:30,home:"Escocia",         away:"Marruecos",         date:"2026-06-19", stage:"Grupos", group:"C", color:"normal"},
-  {n:31,home:"Brasil",          away:"Haití",             date:"2026-06-19", stage:"Grupos", group:"C", color:"normal"},
-  {n:32,home:"Turquía",         away:"Paraguay",          date:"2026-06-19", stage:"Grupos", group:"D", color:"normal"},
-  {n:33,home:"Países Bajos",    away:"Suecia",            date:"2026-06-20", stage:"Grupos", group:"F", color:"normal"},
-  {n:34,home:"Alemania",        away:"Costa de Marfil",   date:"2026-06-20", stage:"Grupos", group:"E", color:"yellow"},
-  {n:35,home:"Ecuador",         away:"Curazao",           date:"2026-06-20", stage:"Grupos", group:"E", color:"yellow"},
-  {n:36,home:"Túnez",           away:"Japón",             date:"2026-06-20", stage:"Grupos", group:"F", color:"normal"},
-  {n:37,home:"España",          away:"Arabia Saudí",      date:"2026-06-21", stage:"Grupos", group:"H", color:"normal"},
-  {n:38,home:"Bélgica",         away:"Irán",              date:"2026-06-21", stage:"Grupos", group:"G", color:"normal"},
-  {n:39,home:"Uruguay",         away:"Cabo Verde",        date:"2026-06-21", stage:"Grupos", group:"H", color:"yellow"},
-  {n:40,home:"Nueva Zelanda",   away:"Egipto",            date:"2026-06-21", stage:"Grupos", group:"G", color:"normal"},
-  {n:41,home:"Argentina",       away:"Austria",           date:"2026-06-22", stage:"Grupos", group:"J", color:"yellow"},
-  {n:42,home:"Francia",         away:"Irak",              date:"2026-06-22", stage:"Grupos", group:"I", color:"normal"},
-  {n:43,home:"Noruega",         away:"Senegal",           date:"2026-06-22", stage:"Grupos", group:"I", color:"normal"},
-  {n:44,home:"Jordania",        away:"Argelia",           date:"2026-06-22", stage:"Grupos", group:"J", color:"yellow"},
-  {n:45,home:"Portugal",        away:"Uzbekistán",        date:"2026-06-23", stage:"Grupos", group:"K", color:"normal"},
-  {n:46,home:"Inglaterra",      away:"Ghana",             date:"2026-06-23", stage:"Grupos", group:"L", color:"normal"},
-  {n:47,home:"Panamá",          away:"Croacia",           date:"2026-06-23", stage:"Grupos", group:"L", color:"grey"},
-  {n:48,home:"Colombia",        away:"RD de Congo",       date:"2026-06-23", stage:"Grupos", group:"K", color:"colombia"},
-  {n:49,home:"Suiza",           away:"Canadá",            date:"2026-06-24", stage:"Grupos", group:"B", color:"normal"},
-  {n:50,home:"Bosnia-Herz.",    away:"Qatar",             date:"2026-06-24", stage:"Grupos", group:"B", color:"normal"},
-  {n:51,home:"Escocia",         away:"Brasil",            date:"2026-06-24", stage:"Grupos", group:"C", color:"yellow"},
-  {n:52,home:"Marruecos",       away:"Haití",             date:"2026-06-24", stage:"Grupos", group:"C", color:"normal"},
-  {n:53,home:"Rep. Checa",      away:"México",            date:"2026-06-24", stage:"Grupos", group:"A", color:"grey"},
-  {n:54,home:"Sudáfrica",       away:"Corea del Sur",     date:"2026-06-24", stage:"Grupos", group:"A", color:"normal"},
-  {n:55,home:"Curazao",         away:"Costa de Marfil",   date:"2026-06-24", stage:"Grupos", group:"E", color:"normal"},
-  {n:56,home:"Ecuador",         away:"Alemania",          date:"2026-06-24", stage:"Grupos", group:"E", color:"normal"},
-  {n:57,home:"Japón",           away:"Suecia",            date:"2026-06-24", stage:"Grupos", group:"F", color:"normal"},
-  {n:58,home:"Túnez",           away:"Países Bajos",      date:"2026-06-24", stage:"Grupos", group:"F", color:"normal"},
-  {n:59,home:"Turquía",         away:"EEUU",              date:"2026-06-25", stage:"Grupos", group:"D", color:"normal"},
-  {n:60,home:"Paraguay",        away:"Australia",         date:"2026-06-25", stage:"Grupos", group:"D", color:"yellow"},
-  {n:61,home:"Noruega",         away:"Francia",           date:"2026-06-26", stage:"Grupos", group:"I", color:"normal"},
-  {n:62,home:"Senegal",         away:"Irak",              date:"2026-06-26", stage:"Grupos", group:"I", color:"normal"},
-  {n:63,home:"Cabo Verde",      away:"Arabia Saudí",      date:"2026-06-26", stage:"Grupos", group:"H", color:"normal"},
-  {n:64,home:"Uruguay",         away:"España",            date:"2026-06-26", stage:"Grupos", group:"H", color:"yellow"},
-  {n:65,home:"Egipto",          away:"Irán",              date:"2026-06-26", stage:"Grupos", group:"G", color:"normal"},
-  {n:66,home:"Nueva Zelanda",   away:"Bélgica",           date:"2026-06-26", stage:"Grupos", group:"G", color:"normal"},
-  {n:67,home:"Panamá",          away:"Inglaterra",        date:"2026-06-27", stage:"Grupos", group:"L", color:"normal"},
-  {n:68,home:"Croacia",         away:"Ghana",             date:"2026-06-27", stage:"Grupos", group:"L", color:"normal"},
-  {n:69,home:"Colombia",        away:"Portugal",          date:"2026-06-27", stage:"Grupos", group:"K", color:"colombia"},
-  {n:70,home:"RD de Congo",     away:"Uzbekistán",        date:"2026-06-27", stage:"Grupos", group:"K", color:"normal"},
-  {n:71,home:"Argelia",         away:"Austria",           date:"2026-06-27", stage:"Grupos", group:"J", color:"normal"},
-  {n:72,home:"Jordania",        away:"Argentina",         date:"2026-06-27", stage:"Grupos", group:"J", color:"grey"},
-  {n:73, home:"2° Grupo A",     away:"2° Grupo B",        date:"2026-06-28", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:74, home:"1° Grupo E",     away:"3° A/B/C/D/F",      date:"2026-06-29", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:75, home:"1° Grupo F",     away:"2° Grupo C",        date:"2026-06-29", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:76, home:"1° Grupo C",     away:"2° Grupo F",        date:"2026-06-29", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:77, home:"1° Grupo I",     away:"3° C/D/F/G/H",      date:"2026-06-30", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:78, home:"2° Grupo E",     away:"2° Grupo I",        date:"2026-06-30", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:79, home:"1° Grupo A",     away:"3° C/E/F/H/I",      date:"2026-07-01", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:80, home:"1° Grupo L",     away:"3° E/H/I/J/K",      date:"2026-07-01", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:81, home:"1° Grupo G",     away:"3° A/E/H/I/J",      date:"2026-07-01", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:82, home:"2° Grupo K",     away:"2° Grupo L",        date:"2026-07-02", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:83, home:"2° Grupo H",     away:"2° Grupo J",        date:"2026-07-02", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:84, home:"1° Grupo B",     away:"3° E/F/G/I/J",      date:"2026-07-02", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:85, home:"1° Grupo K",     away:"3° G/H/I/J/L",      date:"2026-07-03", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:86, home:"1° Grupo H",     away:"2° Grupo B",        date:"2026-07-03", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:87, home:"1° Grupo D",     away:"3° B/E/F/I/J",      date:"2026-07-03", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:88, home:"2° Grupo D",     away:"2° Grupo G",        date:"2026-07-03", stage:"Dieciseisavos", group:"", color:"normal"},
-  {n:89, home:"Gan. 74",        away:"Gan. 78",           date:"2026-07-04", stage:"Octavos", group:"", color:"normal"},
-  {n:90, home:"Gan. 73",        away:"Gan. 75",           date:"2026-07-04", stage:"Octavos", group:"", color:"normal"},
-  {n:91, home:"Gan. 76",        away:"Gan. 79",           date:"2026-07-05", stage:"Octavos", group:"", color:"normal"},
-  {n:92, home:"Gan. 80",        away:"Gan. 87",           date:"2026-07-05", stage:"Octavos", group:"", color:"normal"},
-  {n:93, home:"Gan. 83",        away:"Gan. 84",           date:"2026-07-06", stage:"Octavos", group:"", color:"normal"},
-  {n:94, home:"Gan. 81",        away:"Gan. 82",           date:"2026-07-06", stage:"Octavos", group:"", color:"normal"},
-  {n:95, home:"Gan. 86",        away:"Gan. 88",           date:"2026-07-07", stage:"Octavos", group:"", color:"normal"},
-  {n:96, home:"Gan. 85",        away:"Gan. 77",           date:"2026-07-07", stage:"Octavos", group:"", color:"normal"},
-  {n:97, home:"Gan. Oct. 1",    away:"Gan. Oct. 2",       date:"2026-07-09", stage:"Cuartos", group:"", color:"normal"},
-  {n:98, home:"Gan. Oct. 5",    away:"Gan. Oct. 6",       date:"2026-07-10", stage:"Cuartos", group:"", color:"normal"},
-  {n:99, home:"Gan. Oct. 3",    away:"Gan. Oct. 4",       date:"2026-07-11", stage:"Cuartos", group:"", color:"normal"},
-  {n:100,home:"Gan. Oct. 7",    away:"Gan. Oct. 8",       date:"2026-07-11", stage:"Cuartos", group:"", color:"normal"},
-  {n:101,home:"Gan. Cto. 1",    away:"Gan. Cto. 2",       date:"2026-07-14", stage:"Semifinales", group:"", color:"normal"},
-  {n:102,home:"Gan. Cto. 3",    away:"Gan. Cto. 4",       date:"2026-07-15", stage:"Semifinales", group:"", color:"normal"},
-  {n:103,home:"Perdedor SF 1",  away:"Perdedor SF 2",     date:"2026-07-18", stage:"Tercer Puesto", group:"", color:"normal"},
-  {n:104,home:"Ganador SF 1",   away:"Ganador SF 2",      date:"2026-07-19", stage:"Final", group:"", color:"normal"}
-];
+
 
 let currentUser = null;
 let allMatches = {};
@@ -578,10 +473,13 @@ async function loadData(){
     const matchSnap=await db.ref('mw26_matches').once('value');
     allMatches={};
     if(matchSnap.exists()){
-      matchSnap.forEach(m=>{allMatches['m'+m.val().n]=m.val();});
-    }else{
-      WORLD_CUP_MATCHES.forEach(m=>{allMatches['m'+m.n]=m;});
-      await db.ref('mw26_matches').set(allMatches);
+      const data=matchSnap.val();
+      if(typeof data==='object'){
+        for(const key in data){
+          const match=data[key];
+          allMatches[typeof match.n==='number'?'m'+match.n:key]=match;
+        }
+      }
     }
     const predSnap=await db.ref('predictions').once('value');
     allPredictions=predSnap.val()||{};
