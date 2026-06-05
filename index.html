@@ -510,6 +510,20 @@
       </div>
 
       <div class="admin-section">
+        <div class="card-title">🔑 Restablecer Contraseña</div>
+        <div class="info-banner">Si un usuario olvidó <strong>su contraseña y su pregunta de seguridad</strong>, asígnale una contraseña temporal. Deberá cambiarla después.</div>
+        <div class="form-group">
+          <label>Usuario Registrado</label>
+          <select id="admin-reset-select">
+            <option value="">— Selecciona un usuario —</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Nueva Contraseña Temporal</label><input type="text" id="admin-reset-password" placeholder="6+ caracteres" autocomplete="off"></div>
+        <button class="btn btn-gold" onclick="adminResetPassword()">🔑 Restablecer Contraseña</button>
+        <div class="error-msg" id="admin-reset-error"></div>
+      </div>
+
+      <div class="admin-section">
         <div class="card-title">⚙️ Usuarios Autorizados</div>
         <div class="info-banner">Agrega los nombres completos autorizados para registrarse.</div>
         <div class="form-group"><label>Nombre Completo</label><input type="text" id="admin-new-user" placeholder="Ej: Juan García"></div>
@@ -1214,6 +1228,30 @@ function renderAdminPanel(){
   renderDeadlineCategories();
   renderAdminMatches();
   populateAdminRoleSelect();
+  populateResetSelect();
+}
+
+function populateResetSelect(){
+  const sel = document.getElementById('admin-reset-select');
+  if(!sel) return;
+  const others = Object.values(allUsers).filter(u => u.username !== currentUser.username && !u.disabled);
+  sel.innerHTML = '<option value="">— Selecciona un usuario —</option>' +
+    others.map(u=>`<option value="${u.username}">${u.name} (${u.username})</option>`).join('');
+}
+
+async function adminResetPassword(){
+  const username = document.getElementById('admin-reset-select').value;
+  const newPwd = document.getElementById('admin-reset-password').value;
+  const err = document.getElementById('admin-reset-error');
+  err.style.display = 'none';
+  if(!username){ showErr(err,'Selecciona un usuario'); return; }
+  const target = allUsers[username];
+  if(!target){ showErr(err,'Usuario no encontrado'); return; }
+  if(!newPwd || newPwd.length<6){ showErr(err,'La contraseña debe tener mínimo 6 caracteres'); return; }
+  if(!confirm(`¿Restablecer la contraseña de "${target.name}" (${username})?\n\nNueva contraseña temporal: ${newPwd}`)) return;
+  await fbUpdate(`users/${username}`, {passwordHash: hashPwd(newPwd)});
+  document.getElementById('admin-reset-password').value='';
+  alert(`✅ Contraseña de ${target.name} restablecida.\n\nUsuario: ${username}\nContraseña temporal: ${newPwd}\n\nCompártesela y recomiéndale cambiarla.`);
 }
 
 function populateAdminRoleSelect(){
@@ -1293,7 +1331,7 @@ async function reactivateUser(name,username){
 function renderDeadlineCategories(){
   document.getElementById('deadline-categories').innerHTML=CATEGORIES.map(cat=>{
     const dl=deadlines[cat]||'';
-    const dtVal=dl?new Date(dl).toISOString().slice(0,16):'';
+    const dtVal=dl?(()=>{const d=new Date(dl);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);})():'';
     return `<div style="padding:1rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r)">
       <label style="margin-bottom:.5rem">${cat}</label>
       <input type="datetime-local" id="deadline-${cat}" value="${dtVal}">
