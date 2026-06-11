@@ -85,7 +85,6 @@
     .legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;}.legend-item{display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--muted);background:var(--surface2);padding:4px 10px;border-radius:20px;border:1px solid var(--border);}
     .scorer-card{background:linear-gradient(135deg,rgba(255,215,64,0.08),rgba(0,230,118,0.05));border:1px solid rgba(255,215,64,0.3);border-radius:var(--rL);padding:1rem;margin-bottom:1rem;}
     .admin-section{background:rgba(255,215,64,0.04);border:1px solid rgba(255,215,64,0.15);border-radius:var(--rL);padding:1rem;margin-bottom:1.25rem;}
-    /* GROUP STANDINGS */
     .group-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--rL);padding:1rem;margin-bottom:.75rem;}
     .group-block-title{font-family:'Barlow Condensed',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--blue);margin-bottom:.65rem;}
     .group-table{width:100%;border-collapse:collapse;font-size:.78rem;}
@@ -95,12 +94,12 @@
     .group-table tr.rank-first{background:rgba(255,215,64,0.06);}.group-table tr.rank-second{background:rgba(0,230,118,0.04);}
     .group-table tr.rank-first td:first-child::before{content:'🥇 ';}.group-table tr.rank-second td:first-child::before{content:'🥈 ';}
     .pts-cell{font-weight:700;color:var(--gold);}
-    /* AUTO-UPDATE */
     .auto-update-banner{background:rgba(68,138,255,0.07);border:1px solid rgba(68,138,255,0.25);border-radius:var(--r);padding:.75rem 1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;}
     .au-icon{font-size:1.2rem;flex-shrink:0;}.au-text{flex:1;min-width:150px;}.au-text strong{color:var(--blue);font-size:.82rem;}.au-text p{font-size:.72rem;color:var(--muted);margin-top:.15rem;}
     .au-status{font-size:.7rem;padding:3px 10px;border-radius:10px;font-weight:600;font-family:'Barlow Condensed',sans-serif;letter-spacing:.3px;text-transform:uppercase;}
     .au-status.running{background:rgba(68,138,255,0.15);color:var(--blue);}.au-status.success{background:rgba(0,230,118,0.12);color:var(--green);}.au-status.idle{background:rgba(122,132,160,0.12);color:var(--muted);}
-    /* VER APUESTAS */
+    .au-status.error{background:rgba(255,23,68,0.12);color:var(--red);}
+    .api-key-warning{background:rgba(255,109,0,0.08);border:1px solid rgba(255,109,0,0.35);border-radius:var(--r);padding:.75rem 1rem;font-size:.78rem;color:#ff9d3a;margin-bottom:.75rem;line-height:1.5;}
     .bv-match{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:.75rem;overflow:hidden;}
     .bv-header{padding:.5rem .75rem;background:rgba(68,138,255,0.07);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;}
     .bv-title{font-family:'Barlow Condensed',sans-serif;font-size:.82rem;font-weight:700;}.bv-score{font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:700;color:var(--green);}
@@ -113,7 +112,6 @@
     .bv-group-header{background:rgba(68,138,255,0.1);padding:.4rem .75rem;font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:700;color:var(--blue);letter-spacing:.5px;}
     .bv-group-row{display:grid;grid-template-columns:80px 1fr;gap:.5rem;padding:.35rem .75rem;border-bottom:1px solid rgba(255,255,255,0.03);align-items:start;font-size:.78rem;}
     .bv-group-row:last-child{border-bottom:none;}.bv-group-nick{font-size:.72rem;color:var(--muted);font-weight:600;padding-top:.1rem;}
-    /* REGLAS */
     .rules-hero{background:linear-gradient(135deg,rgba(0,230,118,0.08),rgba(255,215,64,0.06));border:1px solid rgba(255,215,64,0.25);border-radius:var(--rL);padding:1.25rem;margin-bottom:1rem;text-align:center;}
     .rules-hero h2{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:900;letter-spacing:2px;text-transform:uppercase;background:linear-gradient(110deg,var(--green),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.3rem;}
     .rules-hero p{font-size:.75rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
@@ -413,16 +411,29 @@
       <div id="admin-panel-auto" class="hidden">
         <div class="admin-section">
           <div class="card-title">🔄 Auto-actualización de Resultados</div>
+
+          <!-- ⚠️ AVISO API KEY -->
+          <div class="api-key-warning" id="api-key-warning" style="display:none">
+            ⚠️ <strong>API Key no configurada.</strong> Edita el archivo HTML y reemplaza <code>7d94cfc69cc555097867c35cb4b9de1a</code> con tu key real de RapidAPI → API-Football.
+          </div>
+
           <div class="auto-update-banner">
             <div class="au-icon">📡</div>
-            <div class="au-text"><strong>Sincronización con API-Football</strong><p>Trae los marcadores cada 15 min (solo en el dispositivo del admin). Los demás ven los puntos vía Firebase.</p></div>
+            <div class="au-text">
+              <strong>Sincronización con API-Football (RapidAPI)</strong>
+              <p>Trae los marcadores finales. Solo funciona desde el dispositivo del admin. Los demás ven los puntos vía Firebase en tiempo real.</p>
+            </div>
             <span class="au-status idle" id="au-status">Inactivo</span>
           </div>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
             <button class="btn btn-gold btn-sm" onclick="assignFixtureIds()">🔗 Asignar IDs (1 vez)</button>
             <button class="btn btn-blue btn-sm" onclick="autoUpdateResults()">⟳ Actualizar ahora</button>
           </div>
-          <div class="info-banner" style="margin-top:.75rem;margin-bottom:0">Paso 1: <strong>Asignar IDs</strong> una sola vez. Paso 2: deja esta pestaña abierta o presiona <strong>Actualizar ahora</strong>.</div>
+          <div class="info-banner" style="margin-top:.75rem;margin-bottom:0">
+            <strong>Paso 1:</strong> Asignar IDs una sola vez (vincula partidos con API-Football).<br>
+            <strong>Paso 2:</strong> Presiona <strong>Actualizar ahora</strong> para traer resultados de partidos terminados.<br>
+            <strong>Nota:</strong> La API de RapidAPI requiere un plan activo. Verifica en <a href="https://rapidapi.com/api-sports/api/api-football" target="_blank" style="color:var(--blue)">rapidapi.com</a> que tu suscripción esté vigente.
+          </div>
         </div>
       </div>
       <div id="admin-panel-usuarios" class="hidden">
@@ -485,15 +496,68 @@
 </div>
 
 <script>
-const firebaseConfig={apiKey:"AIzaSyB91PswJIsYZDtD9tUfGrKd7K7lK-Ncn2Y",authDomain:"polla-mundial-b094d.firebaseapp.com",databaseURL:"https://polla-mundial-b094d-default-rtdb.firebaseio.com",projectId:"polla-mundial-b094d",storageBucket:"polla-mundial-b094d.firebasestorage.app",messagingSenderId:"496923735877",appId:"1:496923735877:web:daac3dd9d1957002bbf02c",measurementId:"G-SMLXCS4D4Y"};
-firebase.initializeApp(firebaseConfig);
-const db=firebase.database();
+// ============================================================
+//  🔑 CONFIGURACIÓN DE APIs — REEMPLAZA AQUÍ TUS KEYS
+// ============================================================
 
-/* ===== API-FOOTBALL ===== */
-const API_KEY='fc12caeade088c837b76569a59bbc6f4';
-const API_BASE='https://api-football-v1.p.rapidapi.com/v3';
-const WC_LEAGUE=1,WC_SEASON=2026;
-const TEAM_TR={'mexico':'mexico','sudafrica':'south africa','egipto':'egypt','uruguay':'uruguay','canada':'canada','bosnia':'bosnia','bosnia-herzegovina':'bosnia','eeuu':'usa','paraguay':'paraguay','qatar':'qatar','suiza':'switzerland','brasil':'brazil','marruecos':'morocco','haiti':'haiti','escocia':'scotland','australia':'australia','turquia':'turkey','alemania':'germany','curazao':'curacao','paises bajos':'netherlands','japon':'japan','costa de marfil':'ivory coast','suecia':'sweden','tunez':'tunisia','espana':'spain','cabo verde':'cape verde','belgica':'belgium','arabia saudi':'saudi arabia','iran':'iran','nueva zelanda':'new zealand','francia':'france','senegal':'senegal','irak':'iraq','noruega':'norway','argentina':'argentina','argelia':'algeria','austria':'austria','jordania':'jordan','portugal':'portugal','congo':'congo','rd de congo':'dr congo','rep checa':'czech','rep. checa':'czech','corea del sur':'south korea','croacia':'croatia','ghana':'ghana','panama':'panama','uzbekistan':'uzbekistan','colombia':'colombia','inglaterra':'england'};
+// RapidAPI key para API-Football
+// Obtenla en: https://rapidapi.com/api-sports/api/api-football
+// Suscríbete al plan gratuito o de pago y copia la key de "X-RapidAPI-Key"
+const RAPIDAPI_KEY = '7d94cfc69cc555097867c35cb4b9de1a';
+
+// Endpoint base de API-Football vía RapidAPI (no cambiar)
+const API_BASE = 'https://api-football-v1.p.rapidapi.com/v3';
+
+// Identificadores del Mundial 2026 en API-Football
+const WC_LEAGUE = 1;
+const WC_SEASON = 2026;
+
+// ============================================================
+//  🔥 FIREBASE CONFIG (ya configurado, no cambiar)
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyB91PswJIsYZDtD9tUfGrKd7K7lK-Ncn2Y",
+  authDomain: "polla-mundial-b094d.firebaseapp.com",
+  databaseURL: "https://polla-mundial-b094d-default-rtdb.firebaseio.com",
+  projectId: "polla-mundial-b094d",
+  storageBucket: "polla-mundial-b094d.firebasestorage.app",
+  messagingSenderId: "496923735877",
+  appId: "1:496923735877:web:daac3dd9d1957002bbf02c",
+  measurementId: "G-SMLXCS4D4Y"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ============================================================
+//  HELPERS DE API-FOOTBALL
+// ============================================================
+
+// Función centralizada para llamar a la API — facilita depuración
+async function apiFetch(endpoint) {
+  if (RAPIDAPI_KEY === '7d94cfc69cc555097867c35cb4b9de1a') {
+    throw new Error('API Key no configurada. Reemplaza AQUI_TU_RAPIDAPI_KEY en el código.');
+  }
+  const url = `${API_BASE}${endpoint}`;
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'x-rapidapi-key': RAPIDAPI_KEY,
+      'x-rapidapi-host': 'api-football-v1.p.rapidapi.com'
+    }
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`API-Football error ${res.status}: ${text}`);
+  }
+  const data = await res.json();
+  // API-Football devuelve errores dentro de data.errors
+  if (data.errors && Object.keys(data.errors).length > 0) {
+    throw new Error('API-Football: ' + JSON.stringify(data.errors));
+  }
+  return data;
+}
+
+const TEAM_TR = {'mexico':'mexico','sudafrica':'south africa','egipto':'egypt','uruguay':'uruguay','canada':'canada','bosnia':'bosnia','bosnia-herzegovina':'bosnia','eeuu':'usa','paraguay':'paraguay','qatar':'qatar','suiza':'switzerland','brasil':'brazil','marruecos':'morocco','haiti':'haiti','escocia':'scotland','australia':'australia','turquia':'turkey','alemania':'germany','curazao':'curacao','paises bajos':'netherlands','japon':'japan','costa de marfil':'ivory coast','suecia':'sweden','tunez':'tunisia','espana':'spain','cabo verde':'cape verde','belgica':'belgium','arabia saudi':'saudi arabia','iran':'iran','nueva zelanda':'new zealand','francia':'france','senegal':'senegal','irak':'iraq','noruega':'norway','argentina':'argentina','argelia':'algeria','austria':'austria','jordania':'jordan','portugal':'portugal','congo':'congo','rd de congo':'dr congo','rep checa':'czech','rep. checa':'czech','corea del sur':'south korea','croacia':'croatia','ghana':'ghana','panama':'panama','uzbekistan':'uzbekistan','colombia':'colombia','inglaterra':'england'};
 function normT(s){return(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
 function teamMatch(a,b){const na=normT(a),nb=normT(b),ta=TEAM_TR[na]||na;return nb.includes(ta)||ta.includes(nb)||nb.includes(na)||na.includes(nb);}
 function isPlaceholder(m){return/[°\/]|Ganador|Perdedor|Gan\.|Grupo/i.test(m.home+' '+m.away);}
@@ -623,6 +687,10 @@ function buildMatchList(fbMatches){
 function fbSet(p,v){return db.ref(p).set(v);}function fbUpdate(p,v){return db.ref(p).update(v);}function fbGet(p){return db.ref(p).get().then(s=>s.val());}
 
 async function initializeData(){
+  // Mostrar aviso si la API key no está configurada
+  if(RAPIDAPI_KEY==='7d94cfc69cc555097867c35cb4b9de1a'){
+    const w=document.getElementById('api-key-warning');if(w)w.style.display='block';
+  }
   db.ref('.info/connected').on('value',snap=>document.getElementById('sync-dot').classList.toggle('on',snap.val()===true));
   try{
     const[fbUsers,fbAuth,fbMatches,fbPreds,fbScores,fbDeadlines,fbScorer,fbOfficial]=await Promise.all([fbGet('users'),fbGet('authorized'),fbGet('matches'),fbGet('predictions'),fbGet('scores'),fbGet('deadlines'),fbGet('scorerPreds'),fbGet('officialScorer')]);
@@ -751,7 +819,6 @@ function computeMatchPoints(pH,pA,aH,aA,stage,color){
   return{points:final,label};
 }
 
-/* ===== GROUP STANDINGS ENGINE ===== */
 function computeGroupStandings(username,predsData){
   const gm={};WORLD_CUP_MATCHES.filter(m=>m.stage==='Grupos'&&m.group).forEach(m=>{if(!gm[m.group])gm[m.group]=[];gm[m.group].push(m);});
   const result={};const preds=predsData||{};
@@ -782,7 +849,6 @@ function renderMyGroupStandings(){
   }).join('');
 }
 
-/* ===== LEADERBOARD ===== */
 function renderLeaderboard(){
   const r=Object.values(allUsers).filter(u=>!u.disabled).map(u=>({name:u.name,username:u.username,points:allScores[u.username]||0})).sort((a,b)=>b.points-a.points);
   const myR=r.findIndex(x=>x.username===currentUser.username)+1;
@@ -793,7 +859,6 @@ function renderLeaderboard(){
   document.getElementById('leaderboard-list').innerHTML=r.map((x,i)=>`<div class="lb-row ${x.username===currentUser.username?'me':''} ${i===0?'rank-1':''}"><div class="rank-num">${medals[i]||i+1}</div><div class="lb-info"><div class="lb-av">${x.username[0].toUpperCase()}</div><span>${x.username}</span></div><div class="lb-pts">${x.points}</div></div>`).join('')||'<p style="color:var(--muted);text-align:center;padding:2rem">Aún no hay participantes.</p>';
 }
 
-/* ===== VER APUESTAS ===== */
 let _bvStage='Grupos';
 function isStageDeadlinePassed(stage){const dl=deadlines[stage];return dl&&new Date()>=new Date(dl);}
 function renderBetsView(){
@@ -836,7 +901,6 @@ function renderBvGroupStandings(users){
 }
 function filterBetsView(stage,el){_bvStage=stage;document.querySelectorAll('#bv-filter-group .filter-btn').forEach(b=>b.classList.remove('active'));if(el)el.classList.add('active');renderBetsView();}
 
-/* ===== MIS PREDICCIONES ===== */
 let _myPredStage='Grupos';
 function renderMyPredictions(){
   const stages=[...new Set(WORLD_CUP_MATCHES.map(m=>m.stage))];
@@ -854,7 +918,6 @@ function renderMyPredictions(){
 }
 function filterMyPred(stage,el){_myPredStage=stage;document.querySelectorAll('#my-pred-filter .filter-btn').forEach(b=>b.classList.remove('active'));if(el)el.classList.add('active');renderMyPredictions();}
 
-/* ===== APOSTAR ===== */
 let _allMatchesStage='Grupos';
 function renderAllMatches(){
   const stages=[...new Set(WORLD_CUP_MATCHES.map(m=>m.stage))];
@@ -879,7 +942,6 @@ async function savePred(matchId){
   allPredictions[matchId]=allPredictions[matchId]||{};allPredictions[matchId][currentUser.username]={home,away};renderAllMatches();
 }
 
-/* ===== GOLEADOR ===== */
 function isR16Started(){const r16=Object.values(allMatches).filter(m=>m.stage==='Dieciseisavos');if(r16.some(m=>m.status==='finished'))return true;if(deadlines['Dieciseisavos']&&new Date()>=new Date(deadlines['Dieciseisavos']))return true;return false;}
 function renderScorer(){
   const myPred=scorerPreds[currentUser.username];const locked=isR16Started();
@@ -904,7 +966,6 @@ async function registerOfficialScorer(){
   if(Object.keys(updates).length)await fbUpdate('scores',updates);alert(`✅ Goleador oficial: ${name} (${goals} goles). Puntos calculados.`);
 }
 
-/* ===== ADMIN ===== */
 function renderAdminPanel(){
   if(!currentUser?.isAdmin){document.getElementById('admin-tab-content').innerHTML='<div class="card" style="text-align:center;padding:3rem">❌ Acceso restringido</div>';return;}
   switchAdminTab(_adminSub,document.getElementById('admin-sub-'+_adminSub));
@@ -945,7 +1006,7 @@ function renderAdminMatches(){
   const el=document.getElementById('admin-matches-list');if(!el)return;
   el.innerHTML=Object.values(allMatches).filter(m=>m.stage===_adminStage).map(m=>{
     const cnt=Object.keys(allPredictions[m.id]||{}).length;
-    const linkBadge=m.fixtureId?'<span class="status-badge" style="background:rgba(68,138,255,0.15);color:var(--blue)">🔗 API</span>':'';
+    const linkBadge=m.fixtureId?`<span class="status-badge" style="background:rgba(68,138,255,0.15);color:var(--blue)">🔗 ID:${m.fixtureId}</span>`:'';
     return`<div class="match-card color-${m.color}"><div class="match-header"><span style="font-size:.7rem">#${m.n} · ${m.date}</span><span class="status-badge status-${m.status}">${m.status==='finished'?'✓ FINAL':'⏱ Pendiente'}</span>${linkBadge}${colorBadge(m.color)}</div><div class="match-teams"><div class="team-home team-name">${m.home}</div><div class="score-display">${m.scoreHome!==null?`${m.scoreHome}-${m.scoreAway}`:'-'}</div><div class="team-away team-name">${m.away}</div></div><small style="color:var(--muted);font-size:.7rem">${cnt} apuesta${cnt!==1?'s':''}</small><div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.5rem">${m.status!=='finished'?`<button class="btn btn-primary btn-sm" onclick="openResultModal('${m.id}')">+ Resultado</button>`:`<button class="btn btn-danger btn-sm" onclick="undoResult('${m.id}')">Revertir</button>`}<button class="btn btn-gold btn-sm" onclick="showPointsDetail('${m.id}')">Ver Puntos</button></div></div>`;
   }).join('');
 }
@@ -976,41 +1037,121 @@ function showPointsDetail(matchId){
   alert(text);
 }
 
-/* ===== API-FOOTBALL ===== */
+// ============================================================
+//  AUTO-UPDATE — API-Football vía RapidAPI
+// ============================================================
 async function assignFixtureIds(){
   if(!currentUser?.isAdmin){alert('Solo el admin puede hacer esto');return;}
-  if(!confirm('Vinculará los partidos con API-Football. ¿Continuar?'))return;
-  setAuStatus('running','Vinculando IDs…');let assigned=0,checked=0;
-  for(const id in allMatches){const m=allMatches[id];if(m.fixtureId||isPlaceholder(m))continue;checked++;
-    try{const fid=await findFixtureId(m.home,m.away,m.date);if(fid){await fbUpdate(`matches/${id}`,{fixtureId:fid});m.fixtureId=fid;assigned++;}}catch(e){console.error(e);}
-    await new Promise(r=>setTimeout(r,300));}
-  setAuStatus('success',`${assigned} IDs vinculados`);alert(`✅ ${assigned} de ${checked} partidos vinculados.`);
-}
-async function findFixtureId(home,away,date){
-  try{const url=`${API_BASE}/fixtures?league=${WC_LEAGUE}&season=${WC_SEASON}&from=${date}&to=${date}`;
-    const res=await fetch(url,{headers:{'x-rapidapi-key':API_KEY,'x-rapidapi-host':'api-football-v1.p.rapidapi.com'}});
-    if(!res.ok)return null;const data=await res.json();if(!data.response||!data.response.length)return null;
-    for(const fx of data.response){if(teamMatch(home,fx.teams.home.name)&&teamMatch(away,fx.teams.away.name))return fx.fixture.id;}
-  }catch(e){console.error(e);}return null;
-}
-async function autoUpdateResults(){
-  if(!currentUser?.isAdmin)return;setAuStatus('running','Consultando resultados…');let updated=0;
-  try{
-    for(const id in allMatches){const m=allMatches[id];if(m.status==='finished'||!m.fixtureId)continue;
-      try{const res=await fetch(`${API_BASE}/fixtures?id=${m.fixtureId}`,{headers:{'x-rapidapi-key':API_KEY,'x-rapidapi-host':'api-football-v1.p.rapidapi.com'}});
-        if(!res.ok)continue;const data=await res.json();if(!data.response||!data.response.length)continue;
-        const fx=data.response[0];const short=fx.fixture?.status?.short;
-        if(['FT','AET','PEN'].includes(short)){
-          const ft=fx.score?.fulltime||{};const sh=ft.home??fx.goals.home;const sa=ft.away??fx.goals.away;
-          await fbUpdate(`matches/${id}`,{status:'finished',scoreHome:sh,scoreAway:sa});m.status='finished';m.scoreHome=sh;m.scoreAway=sa;
-          const preds=allPredictions[id]||{};const scoreUpdates={};
-          Object.keys(preds).forEach(un=>{const p=preds[un];const{points}=computeMatchPoints(p.home,p.away,sh,sa,m.stage,m.color);if(points>0)scoreUpdates[un]=(allScores[un]||0)+points;});
-          if(Object.keys(scoreUpdates).length){await fbUpdate('scores',scoreUpdates);Object.keys(scoreUpdates).forEach(u=>{allScores[u]=scoreUpdates[u];});}updated++;}
-        await new Promise(r=>setTimeout(r,200));}catch(e){console.error(e);}
+  if(RAPIDAPI_KEY==='7d94cfc69cc555097867c35cb4b9de1a'){
+    alert('❌ Configura la API Key primero.\nEdita el HTML y reemplaza AQUI_TU_RAPIDAPI_KEY.');
+    return;
+  }
+  if(!confirm('Vinculará los partidos con API-Football por fecha. Puede tardar unos minutos. ¿Continuar?'))return;
+  setAuStatus('running','Buscando partidos en API…');
+  let assigned=0, skipped=0, errors=0;
+
+  for(const id in allMatches){
+    const m=allMatches[id];
+    if(m.fixtureId || isPlaceholder(m)){skipped++;continue;}
+    try{
+      const data=await apiFetch(`/fixtures?league=${WC_LEAGUE}&season=${WC_SEASON}&from=${m.date}&to=${m.date}`);
+      if(data.response && data.response.length>0){
+        for(const fx of data.response){
+          if(teamMatch(m.home,fx.teams.home.name)&&teamMatch(m.away,fx.teams.away.name)){
+            await fbUpdate(`matches/${id}`,{fixtureId:fx.fixture.id});
+            m.fixtureId=fx.fixture.id;
+            assigned++;
+            break;
+          }
+        }
+      }
+    }catch(e){
+      console.error(`Error buscando fixture para ${m.home} vs ${m.away}:`,e.message);
+      errors++;
     }
-    setAuStatus('success',updated>0?`${updated} actualizado(s)`:'Al día');
-    if(updated>0){if(_currentTab==='leaderboard')renderLeaderboard();if(_currentTab==='admin')renderAdminMatches();if(_currentTab==='bets-view')renderBetsView();}
-  }catch(e){console.error(e);setAuStatus('idle','Error de conexión');}
+    // Respetar rate limit de RapidAPI (~10 req/min en plan free)
+    await new Promise(r=>setTimeout(r,400));
+  }
+
+  const msg=`✅ Proceso terminado:\n- Vinculados: ${assigned}\n- Saltados (ya tenían ID o son placeholders): ${skipped}\n- Errores: ${errors}`;
+  setAuStatus(errors>0?'error':'success',`${assigned} vinculados`);
+  alert(msg);
+  renderAdminMatches(); // Refrescar para mostrar los IDs asignados
+}
+
+async function autoUpdateResults(){
+  if(!currentUser?.isAdmin)return;
+  if(RAPIDAPI_KEY==='7d94cfc69cc555097867c35cb4b9de1a'){
+    setAuStatus('error','Key no configurada');
+    return;
+  }
+  setAuStatus('running','Consultando resultados…');
+  let updated=0, checked=0, errors=0;
+
+  // Solo procesar partidos pendientes que tienen fixtureId asignado
+  const pendingWithId=Object.values(allMatches).filter(m=>m.status!=='finished'&&m.fixtureId);
+
+  if(pendingWithId.length===0){
+    setAuStatus('idle','Sin partidos pendientes con ID');
+    return;
+  }
+
+  for(const m of pendingWithId){
+    checked++;
+    try{
+      const data=await apiFetch(`/fixtures?id=${m.fixtureId}`);
+      if(!data.response||!data.response.length)continue;
+
+      const fx=data.response[0];
+      const statusShort=fx.fixture?.status?.short;
+
+      // FT=Full Time, AET=After Extra Time, PEN=Penalties
+      if(['FT','AET','PEN'].includes(statusShort)){
+        // Tomamos el resultado a 90 minutos (fulltime), no AET ni penales
+        const ft=fx.score?.fulltime||{};
+        const sh=ft.home??fx.goals?.home;
+        const sa=ft.away??fx.goals?.away;
+
+        if(sh===null||sh===undefined||sa===null||sa===undefined){
+          console.warn(`Partido ${m.id}: resultado incompleto en API`);
+          continue;
+        }
+
+        // Guardar resultado en Firebase
+        await fbUpdate(`matches/${m.id}`,{status:'finished',scoreHome:sh,scoreAway:sa});
+        m.status='finished'; m.scoreHome=sh; m.scoreAway=sa;
+
+        // Calcular puntos para todos los que apostaron
+        const preds=allPredictions[m.id]||{};
+        const scoreUpdates={};
+        Object.keys(preds).forEach(un=>{
+          const p=preds[un];
+          const{points}=computeMatchPoints(p.home,p.away,sh,sa,m.stage,m.color);
+          if(points>0) scoreUpdates[un]=(allScores[un]||0)+points;
+        });
+        if(Object.keys(scoreUpdates).length){
+          await fbUpdate('scores',scoreUpdates);
+          Object.keys(scoreUpdates).forEach(u=>{allScores[u]=scoreUpdates[u];});
+        }
+        updated++;
+        console.log(`✅ ${m.home} ${sh}-${sa} ${m.away} (${m.stage})`);
+      }
+    }catch(e){
+      console.error(`Error actualizando ${m.home} vs ${m.away} [ID:${m.fixtureId}]:`,e.message);
+      errors++;
+    }
+    await new Promise(r=>setTimeout(r,300));
+  }
+
+  const statusMsg=errors>0?`${updated} ok, ${errors} errores`:updated>0?`${updated} actualizado(s)`:'Al día';
+  setAuStatus(errors>0?'error':'success',statusMsg);
+  console.log(`Auto-update: ${checked} revisados, ${updated} actualizados, ${errors} errores`);
+
+  if(updated>0){
+    if(_currentTab==='leaderboard')renderLeaderboard();
+    if(_currentTab==='admin')renderAdminMatches();
+    if(_currentTab==='bets-view')renderBetsView();
+  }
 }
 
 function isMatchLocked(match){if(match.status==='finished')return true;const dl=deadlines[match.stage];if(dl&&new Date()>=new Date(dl))return true;return false;}
