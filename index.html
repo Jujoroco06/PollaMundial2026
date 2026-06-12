@@ -412,9 +412,9 @@
         <div class="admin-section">
           <div class="card-title">🔄 Auto-actualización de Resultados</div>
 
-          <!-- ⚠️ AVISO API KEY -->
+          <!-- ⚠️ AVISO PROXY -->
           <div class="api-key-warning" id="api-key-warning" style="display:none">
-            ⚠️ <strong>API Key no configurada.</strong> Edita el archivo HTML y reemplaza <code>AQUI_TU_API_KEY</code> con tu key real de Football-Data.org.
+            ⚠️ <strong>Falta configurar el proxy.</strong> Football-Data bloquea el navegador por CORS. Crea un Cloudflare Worker y pega su URL en <code>FD_PROXY</code> dentro del HTML. (Ver instrucciones que te pasaron.)
           </div>
 
           <div class="auto-update-banner">
@@ -502,8 +502,14 @@
 // ============================================================
 
 // Tu API key de Football-Data.org (https://www.football-data.org)
-// El plan gratuito permite llamadas desde el navegador (CORS) y cubre el Mundial (WC).
+// OJO: Football-Data NO permite llamadas directas desde el navegador (bloquea por CORS).
+// Por eso se usa un proxy (Cloudflare Worker) que guarda el token y agrega las cabeceras CORS.
 const FD_API_KEY = 'c5e6c0324d42457d99489126ba31267e';
+
+// 👉 PEGA AQUÍ la URL de tu Cloudflare Worker (sin barra final).
+//    Ej: 'https://polla-proxy.tu-usuario.workers.dev'
+//    Mientras esté vacío, la app intentará la llamada directa (fallará por CORS).
+const FD_PROXY = 'https://polla-proxy.juanjoseroco06.workers.dev';
 
 // Endpoint base (v4) y competición: WC = FIFA World Cup
 const FD_BASE = 'https://api.football-data.org/v4';
@@ -533,15 +539,16 @@ const db = firebase.database();
 //  HELPERS DE FOOTBALL-DATA.ORG
 // ============================================================
 
-// Llamada centralizada. Football-Data usa el header X-Auth-Token.
+// Llamada centralizada.
+//  - Con proxy (Cloudflare Worker): el worker agrega el token X-Auth-Token y las cabeceras CORS.
+//  - Sin proxy: intento directo con el header (suele fallar por CORS desde el navegador).
 async function apiFetch(path) {
-  if (!FD_API_KEY || FD_API_KEY === 'AQUI_TU_API_KEY') {
-    throw new Error('API Key no configurada. Reemplaza AQUI_TU_API_KEY en el código.');
+  if (!FD_PROXY && (!FD_API_KEY || FD_API_KEY === 'AQUI_TU_API_KEY')) {
+    throw new Error('Falta configurar el proxy (FD_PROXY) o la API Key.');
   }
-  const res = await fetch(`${FD_BASE}${path}`, {
-    method: 'GET',
-    headers: { 'X-Auth-Token': FD_API_KEY }
-  });
+  const url = (FD_PROXY ? FD_PROXY : FD_BASE) + path;
+  const opts = FD_PROXY ? {} : { headers: { 'X-Auth-Token': FD_API_KEY } };
+  const res = await fetch(url, opts);
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
     throw new Error(`API error ${res.status}: ${text}`);
@@ -592,7 +599,10 @@ async function apiDiagnostico(){
     alert(msg);
   }catch(e){
     setAuStatus('error','Falló');
-    alert(`❌ Error al conectar con Football-Data.org:\n\n${e.message}\n\n• Si el código es 403/restricted: la key no tiene acceso a esta competición.\n• Si menciona CORS: hay que usar un proxy/servidor.\n• Si es 429: superaste el límite (10 req/min en el plan gratuito), espera un minuto.`);
+    const proxyMsg = FD_PROXY
+      ? `Proxy en uso: ${FD_PROXY}\nRevisa que el Worker esté publicado y con el token correcto.`
+      : `⚠️ No tienes proxy configurado (FD_PROXY está vacío).\nFootball-Data bloquea el navegador por CORS, por eso falla.\nDebes crear el Cloudflare Worker y pegar su URL en FD_PROXY.`;
+    alert(`❌ Error al conectar con Football-Data.org:\n\n${e.message}\n\n${proxyMsg}\n\n• 403/restricted: la key no tiene acceso a WC.\n• 429: superaste el límite (10 req/min), espera un minuto.`);
   }
 }
 
@@ -727,7 +737,7 @@ function fbSet(p,v){return db.ref(p).set(v);}function fbUpdate(p,v){return db.re
 
 async function initializeData(){
   // Mostrar aviso si la API key no está configurada
-  if(FD_API_KEY==='AQUI_TU_API_KEY'){
+  if(!FD_PROXY){
     const w=document.getElementById('api-key-warning');if(w)w.style.display='block';
   }
   db.ref('.info/connected').on('value',snap=>document.getElementById('sync-dot').classList.toggle('on',snap.val()===true));
