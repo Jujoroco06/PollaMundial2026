@@ -414,13 +414,13 @@
 
           <!-- ⚠️ AVISO API KEY -->
           <div class="api-key-warning" id="api-key-warning" style="display:none">
-            ⚠️ <strong>API Key no configurada.</strong> Edita el archivo HTML y reemplaza <code>AQUI_TU_RAPIDAPI_KEY</code> con tu key real de RapidAPI → API-Football.
+            ⚠️ <strong>API Key no configurada.</strong> Edita el archivo HTML y reemplaza <code>AQUI_TU_RAPIDAPI_KEY</code> con tu key real.
           </div>
 
           <div class="auto-update-banner">
             <div class="au-icon">📡</div>
             <div class="au-text">
-              <strong>Sincronización con API-Football (RapidAPI)</strong>
+              <strong>Sincronización con API-Football</strong>
               <p>Trae los marcadores finales. Solo funciona desde el dispositivo del admin. Los demás ven los puntos vía Firebase en tiempo real.</p>
             </div>
             <span class="au-status idle" id="au-status">Inactivo</span>
@@ -428,11 +428,12 @@
           <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
             <button class="btn btn-gold btn-sm" onclick="assignFixtureIds()">🔗 Asignar IDs (1 vez)</button>
             <button class="btn btn-blue btn-sm" onclick="autoUpdateResults()">⟳ Actualizar ahora</button>
+            <button class="btn btn-ghost btn-sm" onclick="apiDiagnostico()">🩺 Diagnóstico</button>
           </div>
           <div class="info-banner" style="margin-top:.75rem;margin-bottom:0">
             <strong>Paso 1:</strong> Asignar IDs una sola vez (vincula partidos con API-Football).<br>
             <strong>Paso 2:</strong> Presiona <strong>Actualizar ahora</strong> para traer resultados de partidos terminados.<br>
-            <strong>Nota:</strong> La API de RapidAPI requiere un plan activo. Verifica en <a href="https://rapidapi.com/api-sports/api/api-football" target="_blank" style="color:var(--blue)">rapidapi.com</a> que tu suscripción esté vigente.
+            <strong>Nota:</strong> Si tu plan es gratuito y no trae datos del Mundial 2026, usa <strong>🩺 Diagnóstico</strong> para ver el mensaje exacto de la API.
           </div>
         </div>
       </div>
@@ -497,16 +498,26 @@
 
 <script>
 // ============================================================
-//  🔑 CONFIGURACIÓN DE APIs — REEMPLAZA AQUÍ TUS KEYS
+//  🔑 CONFIGURACIÓN DE APIs — REEMPLAZA AQUÍ TU KEY
 // ============================================================
 
-// RapidAPI key para API-Football
-// Obtenla en: https://rapidapi.com/api-sports/api/api-football
-// Suscríbete al plan gratuito o de pago y copia la key de "X-RapidAPI-Key"
+// Tu API key de API-Football.
+//  - Si es una key DIRECTA de API-Sports (dashboard api-football.com): 32 caracteres.
+//  - Si es una key de RapidAPI: ~50 caracteres.
+// El código detecta el tipo automáticamente y usa el host/header correcto.
 const RAPIDAPI_KEY = '7d94cfc69cc555097867c35cb4b9de1a';
 
-// Endpoint base de API-Football vía RapidAPI (no cambiar)
-const API_BASE = 'https://api-football-v1.p.rapidapi.com/v3';
+// Host de RapidAPI (solo se usa si la key es de RapidAPI)
+const RAPID_HOST = 'api-football-v1.p.rapidapi.com';
+
+// Detección automática: las keys directas de API-Sports tienen 32 caracteres.
+// Las de RapidAPI son más largas (~50). Si la key es corta -> host directo.
+const USE_DIRECT_API = (RAPIDAPI_KEY && RAPIDAPI_KEY !== 'AQUI_TU_RAPIDAPI_KEY' && RAPIDAPI_KEY.length <= 45);
+
+// Endpoint base según el tipo de key
+const API_BASE = USE_DIRECT_API
+  ? 'https://v3.football.api-sports.io'
+  : ('https://' + RAPID_HOST + '/v3');
 
 // Identificadores del Mundial 2026 en API-Football
 const WC_LEAGUE = 1;
@@ -534,27 +545,50 @@ const db = firebase.database();
 
 // Función centralizada para llamar a la API — facilita depuración
 async function apiFetch(endpoint) {
-  if (RAPIDAPI_KEY === '7d94cfc69cc555097867c35cb4b9de1a') {
+  if (!RAPIDAPI_KEY || RAPIDAPI_KEY === 'AQUI_TU_RAPIDAPI_KEY') {
     throw new Error('API Key no configurada. Reemplaza AQUI_TU_RAPIDAPI_KEY en el código.');
   }
   const url = `${API_BASE}${endpoint}`;
-  const res = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'x-rapidapi-key': RAPIDAPI_KEY,
-      'x-rapidapi-host': 'api-football-v1.p.rapidapi.com'
-    }
-  });
+  // Cabeceras según el tipo de key detectado
+  const headers = USE_DIRECT_API
+    ? { 'x-apisports-key': RAPIDAPI_KEY }
+    : { 'x-rapidapi-key': RAPIDAPI_KEY, 'x-rapidapi-host': RAPID_HOST };
+  const res = await fetch(url, { method: 'GET', headers });
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
-    throw new Error(`API-Football error ${res.status}: ${text}`);
+    throw new Error(`API error ${res.status}: ${text}`);
   }
   const data = await res.json();
-  // API-Football devuelve errores dentro de data.errors
-  if (data.errors && Object.keys(data.errors).length > 0) {
-    throw new Error('API-Football: ' + JSON.stringify(data.errors));
+  // API-Football puede devolver errores como array (directo) u objeto (rapidapi)
+  if (data.errors) {
+    const hasErr = Array.isArray(data.errors) ? data.errors.length > 0 : Object.keys(data.errors).length > 0;
+    if (hasErr) throw new Error('API: ' + JSON.stringify(data.errors));
   }
   return data;
+}
+
+// Diagnóstico: hace una llamada simple y muestra el resultado/errores reales
+async function apiDiagnostico(){
+  if(!currentUser?.isAdmin){alert('Solo el admin');return;}
+  setAuStatus('running','Diagnóstico…');
+  const modo = USE_DIRECT_API ? 'API-Sports directo (x-apisports-key)' : 'RapidAPI (x-rapidapi-key)';
+  try{
+    const data = await apiFetch(`/fixtures?league=${WC_LEAGUE}&season=${WC_SEASON}&from=2026-06-11&to=2026-06-11`);
+    const n = data.response ? data.response.length : 0;
+    setAuStatus(n>0?'success':'idle', n>0?`OK: ${n} partidos`:'OK pero 0 partidos');
+    let msg = `Modo: ${modo}\nHost: ${API_BASE}\nLiga ${WC_LEAGUE} · Temporada ${WC_SEASON}\n\n`;
+    if(n>0){
+      msg += `✅ La API devolvió ${n} partido(s) para el 11/06/2026:\n`;
+      data.response.slice(0,4).forEach(fx=>{msg+=`• ${fx.teams.home.name} vs ${fx.teams.away.name} (id ${fx.fixture.id})\n`;});
+      msg += `\nTu plan SÍ tiene acceso al Mundial 2026. Ya puedes usar "Asignar IDs".`;
+    } else {
+      msg += `⚠️ La API respondió sin errores pero con 0 partidos.\nProbablemente tu plan gratuito no incluye la temporada 2026, o aún no hay fixtures para esa fecha.`;
+    }
+    alert(msg);
+  }catch(e){
+    setAuStatus('error','Falló');
+    alert(`Modo: ${modo}\nHost: ${API_BASE}\n\n❌ Error:\n${e.message}\n\nSi el mensaje habla de "plan", "subscription" o "season", tu plan gratuito no cubre la temporada 2026.`);
+  }
 }
 
 const TEAM_TR = {'mexico':'mexico','sudafrica':'south africa','egipto':'egypt','uruguay':'uruguay','canada':'canada','bosnia':'bosnia','bosnia-herzegovina':'bosnia','eeuu':'usa','paraguay':'paraguay','qatar':'qatar','suiza':'switzerland','brasil':'brazil','marruecos':'morocco','haiti':'haiti','escocia':'scotland','australia':'australia','turquia':'turkey','alemania':'germany','curazao':'curacao','paises bajos':'netherlands','japon':'japan','costa de marfil':'ivory coast','suecia':'sweden','tunez':'tunisia','espana':'spain','cabo verde':'cape verde','belgica':'belgium','arabia saudi':'saudi arabia','iran':'iran','nueva zelanda':'new zealand','francia':'france','senegal':'senegal','irak':'iraq','noruega':'norway','argentina':'argentina','argelia':'algeria','austria':'austria','jordania':'jordan','portugal':'portugal','congo':'congo','rd de congo':'dr congo','rep checa':'czech','rep. checa':'czech','corea del sur':'south korea','croacia':'croatia','ghana':'ghana','panama':'panama','uzbekistan':'uzbekistan','colombia':'colombia','inglaterra':'england'};
@@ -1038,7 +1072,7 @@ function showPointsDetail(matchId){
 }
 
 // ============================================================
-//  AUTO-UPDATE — API-Football vía RapidAPI
+//  AUTO-UPDATE — API-Football
 // ============================================================
 async function assignFixtureIds(){
   if(!currentUser?.isAdmin){alert('Solo el admin puede hacer esto');return;}
@@ -1048,7 +1082,7 @@ async function assignFixtureIds(){
   }
   if(!confirm('Vinculará los partidos con API-Football por fecha. Puede tardar unos minutos. ¿Continuar?'))return;
   setAuStatus('running','Buscando partidos en API…');
-  let assigned=0, skipped=0, errors=0;
+  let assigned=0, skipped=0, errors=0, firstErr='';
 
   for(const id in allMatches){
     const m=allMatches[id];
@@ -1067,16 +1101,18 @@ async function assignFixtureIds(){
       }
     }catch(e){
       console.error(`Error buscando fixture para ${m.home} vs ${m.away}:`,e.message);
+      if(!firstErr)firstErr=e.message;
       errors++;
     }
-    // Respetar rate limit de RapidAPI (~10 req/min en plan free)
+    // Respetar rate limit (~10 req/min en plan free)
     await new Promise(r=>setTimeout(r,400));
   }
 
-  const msg=`✅ Proceso terminado:\n- Vinculados: ${assigned}\n- Saltados (ya tenían ID o son placeholders): ${skipped}\n- Errores: ${errors}`;
+  let msg=`✅ Proceso terminado:\n- Vinculados: ${assigned}\n- Saltados (ya tenían ID o son placeholders): ${skipped}\n- Errores: ${errors}`;
+  if(errors>0&&firstErr){msg+=`\n\nPrimer error:\n${firstErr}\n\n(Si menciona "plan", "subscription" o "season", tu plan gratuito no cubre la temporada 2026. Usa 🩺 Diagnóstico.)`;}
   setAuStatus(errors>0?'error':'success',`${assigned} vinculados`);
   alert(msg);
-  renderAdminMatches(); // Refrescar para mostrar los IDs asignados
+  renderAdminMatches();
 }
 
 async function autoUpdateResults(){
@@ -1088,7 +1124,6 @@ async function autoUpdateResults(){
   setAuStatus('running','Consultando resultados…');
   let updated=0, checked=0, errors=0;
 
-  // Solo procesar partidos pendientes que tienen fixtureId asignado
   const pendingWithId=Object.values(allMatches).filter(m=>m.status!=='finished'&&m.fixtureId);
 
   if(pendingWithId.length===0){
@@ -1107,7 +1142,7 @@ async function autoUpdateResults(){
 
       // FT=Full Time, AET=After Extra Time, PEN=Penalties
       if(['FT','AET','PEN'].includes(statusShort)){
-        // Tomamos el resultado a 90 minutos (fulltime), no AET ni penales
+        // Resultado a 90 minutos (fulltime), no AET ni penales
         const ft=fx.score?.fulltime||{};
         const sh=ft.home??fx.goals?.home;
         const sa=ft.away??fx.goals?.away;
@@ -1117,11 +1152,9 @@ async function autoUpdateResults(){
           continue;
         }
 
-        // Guardar resultado en Firebase
         await fbUpdate(`matches/${m.id}`,{status:'finished',scoreHome:sh,scoreAway:sa});
         m.status='finished'; m.scoreHome=sh; m.scoreAway=sa;
 
-        // Calcular puntos para todos los que apostaron
         const preds=allPredictions[m.id]||{};
         const scoreUpdates={};
         Object.keys(preds).forEach(un=>{
