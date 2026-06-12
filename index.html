@@ -414,7 +414,7 @@
 
           <!-- ⚠️ AVISO API KEY -->
           <div class="api-key-warning" id="api-key-warning" style="display:none">
-            ⚠️ <strong>API Key no configurada.</strong> Edita el archivo HTML y reemplaza <code>7d94cfc69cc555097867c35cb4b9de1a</code> con tu key real de RapidAPI → API-Football.
+            ⚠️ <strong>API Key no configurada.</strong> Edita el archivo HTML y reemplaza <code>AQUI_TU_RAPIDAPI_KEY</code> con tu key real de RapidAPI → API-Football.
           </div>
 
           <div class="auto-update-banner">
@@ -688,7 +688,7 @@ function fbSet(p,v){return db.ref(p).set(v);}function fbUpdate(p,v){return db.re
 
 async function initializeData(){
   // Mostrar aviso si la API key no está configurada
-  if(RAPIDAPI_KEY==='7d94cfc69cc555097867c35cb4b9de1a'){
+  if(RAPIDAPI_KEY==='AQUI_TU_RAPIDAPI_KEY'){
     const w=document.getElementById('api-key-warning');if(w)w.style.display='block';
   }
   db.ref('.info/connected').on('value',snap=>document.getElementById('sync-dot').classList.toggle('on',snap.val()===true));
@@ -1042,7 +1042,7 @@ function showPointsDetail(matchId){
 // ============================================================
 async function assignFixtureIds(){
   if(!currentUser?.isAdmin){alert('Solo el admin puede hacer esto');return;}
-  if(RAPIDAPI_KEY==='7d94cfc69cc555097867c35cb4b9de1a'){
+  if(RAPIDAPI_KEY==='AQUI_TU_RAPIDAPI_KEY'){
     alert('❌ Configura la API Key primero.\nEdita el HTML y reemplaza AQUI_TU_RAPIDAPI_KEY.');
     return;
   }
@@ -1081,7 +1081,7 @@ async function assignFixtureIds(){
 
 async function autoUpdateResults(){
   if(!currentUser?.isAdmin)return;
-  if(RAPIDAPI_KEY==='7d94cfc69cc555097867c35cb4b9de1a'){
+  if(RAPIDAPI_KEY==='AQUI_TU_RAPIDAPI_KEY'){
     setAuStatus('error','Key no configurada');
     return;
   }
