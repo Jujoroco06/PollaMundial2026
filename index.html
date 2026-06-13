@@ -749,11 +749,30 @@ function switchAuthTab(tab,el){document.querySelectorAll('.auth-tab').forEach(t=
 function openForgotForm(){['login-form','register-form'].forEach(id=>document.getElementById(id).classList.add('hidden'));document.getElementById('forgot-form').classList.remove('hidden');document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));forgotReset();}
 function showAuthScreen(){document.getElementById('auth-screen').classList.remove('hidden');document.getElementById('app-screen').classList.add('hidden');}
 function showAppScreen(){
-  document.getElementById('auth-screen').classList.add('hidden');document.getElementById('app-screen').classList.remove('hidden');
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('app-screen').classList.remove('hidden');
   document.getElementById('user-avatar').textContent=currentUser.name[0].toUpperCase();
   document.getElementById('user-name-display').textContent=currentUser.name.split(' ')[0];
-  if(currentUser.isAdmin){document.getElementById('admin-crown').classList.remove('hidden');document.getElementById('admin-tab').classList.remove('hidden');}
+  if(currentUser.isAdmin){
+    document.getElementById('admin-crown').classList.remove('hidden');
+    document.getElementById('admin-tab').classList.remove('hidden');
+    // Auto-update cada 60 segundos si hay partidos en curso
+    if(!window._autoTimer){
+      window._autoTimer = setInterval(async()=>{
+        const hayEnCurso = Object.values(allMatches).some(m=>{
+          if(m.status==='finished'||isPlaceholder(m))return false;
+          const now = new Date();
+          const matchDate = new Date(m.date);
+          // Solo actualiza si el partido es de hoy o ayer (margen de 24h)
+          const diffHours = (now - matchDate) / 36e5;
+          return diffHours >= 0 && diffHours <= 24;
+        });
+        if(hayEnCurso) await autoUpdateResults();
+      }, 60_000);
+    }
+  }
 }
+  
 function showErr(el,msg){el.textContent=msg;el.style.display='block';}
 function closeModal(){document.getElementById('result-modal').classList.remove('active');}
 
@@ -973,39 +992,61 @@ function findFdMatch(localMatch,fdList){
 }
 
 const TEAM_TR={
-  'mexico':'mexico','sudafrica':'south africa','egipto':'egypt','uruguay':'uruguay',
-  'canada':'canada','bosnia-herzegovina':'bosnia','bosnia':'bosnia',
-  'eeuu':'united states','paraguay':'paraguay','qatar':'qatar',
-  'suiza':'switzerland','brasil':'brazil','marruecos':'morocco','haiti':'haiti',
-  'escocia':'scotland','australia':'australia','turquia':'turkey','alemania':'germany',
-  'curazao':'curacao','paises bajos':'netherlands','japon':'japan',
-  'costa de marfil':'ivory coast','suecia':'sweden','tunez':'tunisia',
-  'espana':'spain','cabo verde':'cape verde','belgica':'belgium',
-  'arabia saudi':'saudi arabia','iran':'iran','nueva zelanda':'new zealand',
-  'francia':'france','senegal':'senegal','irak':'iraq','noruega':'norway',
-  'argentina':'argentina','argelia':'algeria','austria':'austria','jordania':'jordan',
-  'portugal':'portugal','congo':'congo dr','rd de congo':'congo dr',
-  'rep checa':'czechia','rep. checa':'czechia',
-  'corea del sur':'south korea','croacia':'croatia','ghana':'ghana',
-  'panama':'panama','uzbekistan':'uzbekistan','colombia':'colombia','inglaterra':'england'
+  'mexico':'mexico','sudafrica':'south africa','corea del sur':'south korea',
+  'rep. checa':'czechia','rep checa':'czechia','canada':'canada',
+  'bosnia-herzegovina':'bosnia-herzegovina','qatar':'qatar','suiza':'switzerland',
+  'brasil':'brazil','marruecos':'morocco','haiti':'haiti','escocia':'scotland',
+  'eeuu':'united states','paraguay':'paraguay','australia':'australia',
+  'turquia':'turkiye','alemania':'germany','curazao':'curacao',
+  'costa de marfil':'ivory coast','ecuador':'ecuador',
+  'paises bajos':'netherlands','japon':'japan','suecia':'sweden','tunez':'tunisia',
+  'belgica':'belgium','egipto':'egypt','iran':'iran','nueva zelanda':'new zealand',
+  'espana':'spain','cabo verde':'cape verde','arabia saudi':'saudi arabia',
+  'uruguay':'uruguay','francia':'france','senegal':'senegal','irak':'iraq',
+  'noruega':'norway','argentina':'argentina','argelia':'algeria',
+  'austria':'austria','jordania':'jordan','portugal':'portugal',
+  'rd de congo':'dr congo','uzbekistan':'uzbekistan','colombia':'colombia',
+  'inglaterra':'england','croacia':'croatia','ghana':'ghana','panama':'panama'
 };
+
 function normT(s){return(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
-function teamMatch(a,b){
-  const na=normT(a),nb=normT(b);
-  const ta=TEAM_TR[na]||na;
-  // match directo o contenido
-  if(nb===ta||ta===nb)return true;
-  if(nb.includes(ta)||ta.includes(nb))return true;
-  if(nb.includes(na)||na.includes(nb))return true;
-  // aliases extra para casos especiales
-  const aliases={'united states':['eeuu','usa','us'],'czechia':['czech republic','rep. checa','rep checa'],'congo dr':['rd de congo','democratic republic','dr congo'],'ivory coast':["cote d'ivoire",'côte'],'bosnia':['bosnia-herzegovina','bosnia & herzegovina'],'south korea':['korea republic','korea rep'],'netherlands':['holland']};
-  for(const[key,alts]of Object.entries(aliases)){
-    if((nb.includes(key)||key.includes(nb))&&(alts.some(alt=>na.includes(alt)||alt.includes(na))||na.includes(key)||key.includes(na)))return true;
-    if((na.includes(key)||key.includes(na))&&(alts.some(alt=>nb.includes(alt)||alt.includes(nb))||nb.includes(key)||key.includes(nb)))return true;
+
+function teamMatch(local,fd){
+  const nl=normT(local), nf=normT(fd);
+  const tl=TEAM_TR[nl]||nl;
+
+  // 1. Match exacto traducido
+  if(tl===nf)return true;
+  // 2. Contención directa
+  if(tl.includes(nf)||nf.includes(tl))return true;
+  if(nl.includes(nf)||nf.includes(nl))return true;
+
+  // 3. Equivalencias explícitas — clave = nombre exacto de Football-Data
+  const FD={
+    'united states':      ['eeuu','usa'],
+    'czechia':            ['rep. checa','rep checa','czech'],
+    'bosnia-herzegovina': ['bosnia'],
+    'dr congo':           ['rd de congo','congo'],
+    'ivory coast':        ["cote d'ivoire",'cote divoire','cote','costa de marfil'],
+    'south korea':        ['corea del sur','korea republic','korea rep'],
+    'netherlands':        ['paises bajos','holland'],
+    'turkiye':            ['turquia','turkey'],
+    'turkey':             ['turquia','turkiye'],
+    'saudi arabia':       ['arabia saudi'],
+    'new zealand':        ['nueva zelanda'],
+    'cape verde':         ['cabo verde'],
+    'ivory coast':        ['costa de marfil',"cote d'ivoire",'cote divoire','cote'],
+  };
+
+  for(const[fdKey,localAlts]of Object.entries(FD)){
+    const fdMatches  = nf===fdKey||nf.includes(fdKey)||fdKey.includes(nf);
+    const locMatches = nl===fdKey
+                    || localAlts.some(a=>nl.includes(a)||a.includes(nl))
+                    || tl===fdKey||tl.includes(fdKey)||fdKey.includes(tl);
+    if(fdMatches&&locMatches)return true;
   }
   return false;
 }
-
 function setAuStatus(cls,txt){const el=document.getElementById('au-status');if(el){el.className='au-status '+cls;el.textContent=txt;}}
 
 async function apiDiagnostico(){
@@ -1050,27 +1091,55 @@ async function autoUpdateResults(){
   if(!currentUser?.isAdmin)return;
   setAuStatus('running','Consultando resultados…');
   let data;
-  try{data=await apiFetch(`/competitions/${FD_COMPETITION}/matches`);}
-  catch(e){setAuStatus('error','Error API');console.error('Auto-update:',e.message);return;}
-  const fdList=(data&&data.matches)||[];
-  const finished=fdList.filter(x=>x.status==='FINISHED');
-  console.log(`Football-Data: ${fdList.length} partidos totales, ${finished.length} FINISHED`);
-  finished.forEach(x=>console.log(`  FD: ${x.homeTeam?.name} vs ${x.awayTeam?.name}`));
+  try{
+    data = await apiFetch(`/competitions/${FD_COMPETITION}/matches`);
+  }catch(e){
+    setAuStatus('error','Error API');
+    console.error('Auto-update error:',e.message);
+    return;
+  }
+  const fdList   = (data&&data.matches)||[];
+  const finished = fdList.filter(x=>x.status==='FINISHED');
+  console.log(`Football-Data: ${fdList.length} total, ${finished.length} FINISHED`);
+  finished.forEach(x=>console.log(`  FD: "${x.homeTeam?.name}" vs "${x.awayTeam?.name}"`));
+
   let updated=0;
   for(const m of Object.values(allMatches)){
     if(m.status==='finished'||isPlaceholder(m))continue;
-    const fx=findFdMatch(m,finished);if(!fx)continue;
-    const sc=score90(fx.score);if(!sc||sc.home==null||sc.away==null)continue;
+    const fx = findFdMatch(m, finished);
+    if(!fx){
+      // Log para depurar qué no matchea
+      const anyFd = findFdMatch(m, fdList);
+      if(anyFd) console.log(`⏳ Pendiente aún: ${m.home} vs ${m.away} [${anyFd.status}]`);
+      continue;
+    }
+    const sc = score90(fx.score);
+    if(!sc||sc.home==null||sc.away==null) continue;
+
     await fbUpdate(`matches/${m.id}`,{status:'finished',scoreHome:sc.home,scoreAway:sc.away,fixtureId:fx.id});
-    m.status='finished';m.scoreHome=sc.home;m.scoreAway=sc.away;m.fixtureId=fx.id;
-    const preds=allPredictions[m.id]||{};const scoreUpdates={};
-    Object.keys(preds).forEach(un=>{const p=preds[un];const{points}=computeMatchPoints(p.home,p.away,sc.home,sc.away,m.stage,m.color);if(points>0)scoreUpdates[un]=(allScores[un]||0)+points;});
-    if(Object.keys(scoreUpdates).length){await fbUpdate('scores',scoreUpdates);Object.keys(scoreUpdates).forEach(u=>{allScores[u]=scoreUpdates[u];});}
+    m.status='finished'; m.scoreHome=sc.home; m.scoreAway=sc.away;
+
+    const preds=allPredictions[m.id]||{};
+    const scoreUpdates={};
+    Object.keys(preds).forEach(un=>{
+      const p=preds[un];
+      const{points}=computeMatchPoints(p.home,p.away,sc.home,sc.away,m.stage,m.color);
+      if(points>0) scoreUpdates[un]=(allScores[un]||0)+points;
+    });
+    if(Object.keys(scoreUpdates).length){
+      await fbUpdate('scores',scoreUpdates);
+      Object.keys(scoreUpdates).forEach(u=>{allScores[u]=scoreUpdates[u];});
+    }
     updated++;
-    console.log(`✅ ${m.home} ${sc.home}-${sc.away} ${m.away} (${m.stage}) [90']`);
+    console.log(`✅ ${m.home} ${sc.home}-${sc.away} ${m.away} [90']`);
   }
-  setAuStatus(updated>0?'success':'idle',updated>0?`${updated} actualizado(s)`:'Al día');
-  if(updated>0){if(_currentTab==='leaderboard')renderLeaderboard();if(_currentTab==='admin')renderAdminMatches();if(_currentTab==='bets-view')renderBetsView();}
+
+  setAuStatus(updated>0?'success':'idle', updated>0?`${updated} actualizado(s)`:'Al día');
+  if(updated>0){
+    if(_currentTab==='leaderboard') renderLeaderboard();
+    if(_currentTab==='admin')       renderAdminMatches();
+    if(_currentTab==='bets-view')   renderBetsView();
+  }
 }
 
 /* ===== ADMIN ===== */
