@@ -972,9 +972,39 @@ function findFdMatch(localMatch,fdList){
   return cands[0]||null;
 }
 
-const TEAM_TR={'mexico':'mexico','sudafrica':'south africa','egipto':'egypt','uruguay':'uruguay','canada':'canada','bosnia':'bosnia','bosnia-herzegovina':'bosnia','eeuu':'usa','paraguay':'paraguay','qatar':'qatar','suiza':'switzerland','brasil':'brazil','marruecos':'morocco','haiti':'haiti','escocia':'scotland','australia':'australia','turquia':'turkey','alemania':'germany','curazao':'curacao','paises bajos':'netherlands','japon':'japan','costa de marfil':'ivory coast','suecia':'sweden','tunez':'tunisia','espana':'spain','cabo verde':'cape verde','belgica':'belgium','arabia saudi':'saudi arabia','iran':'iran','nueva zelanda':'new zealand','francia':'france','senegal':'senegal','irak':'iraq','noruega':'norway','argentina':'argentina','argelia':'algeria','austria':'austria','jordania':'jordan','portugal':'portugal','congo':'congo','rd de congo':'dr congo','rep checa':'czech','rep. checa':'czech','corea del sur':'south korea','croacia':'croatia','ghana':'ghana','panama':'panama','uzbekistan':'uzbekistan','colombia':'colombia','inglaterra':'england'};
+const TEAM_TR={
+  'mexico':'mexico','sudafrica':'south africa','egipto':'egypt','uruguay':'uruguay',
+  'canada':'canada','bosnia-herzegovina':'bosnia','bosnia':'bosnia',
+  'eeuu':'united states','paraguay':'paraguay','qatar':'qatar',
+  'suiza':'switzerland','brasil':'brazil','marruecos':'morocco','haiti':'haiti',
+  'escocia':'scotland','australia':'australia','turquia':'turkey','alemania':'germany',
+  'curazao':'curacao','paises bajos':'netherlands','japon':'japan',
+  'costa de marfil':'ivory coast','suecia':'sweden','tunez':'tunisia',
+  'espana':'spain','cabo verde':'cape verde','belgica':'belgium',
+  'arabia saudi':'saudi arabia','iran':'iran','nueva zelanda':'new zealand',
+  'francia':'france','senegal':'senegal','irak':'iraq','noruega':'norway',
+  'argentina':'argentina','argelia':'algeria','austria':'austria','jordania':'jordan',
+  'portugal':'portugal','congo':'congo dr','rd de congo':'congo dr',
+  'rep checa':'czechia','rep. checa':'czechia',
+  'corea del sur':'south korea','croacia':'croatia','ghana':'ghana',
+  'panama':'panama','uzbekistan':'uzbekistan','colombia':'colombia','inglaterra':'england'
+};
 function normT(s){return(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
-function teamMatch(a,b){const na=normT(a),nb=normT(b),ta=TEAM_TR[na]||na;return nb.includes(ta)||ta.includes(nb)||nb.includes(na)||na.includes(nb);}
+function teamMatch(a,b){
+  const na=normT(a),nb=normT(b);
+  const ta=TEAM_TR[na]||na;
+  // match directo o contenido
+  if(nb===ta||ta===nb)return true;
+  if(nb.includes(ta)||ta.includes(nb))return true;
+  if(nb.includes(na)||na.includes(nb))return true;
+  // aliases extra para casos especiales
+  const aliases={'united states':['eeuu','usa','us'],'czechia':['czech republic','rep. checa','rep checa'],'congo dr':['rd de congo','democratic republic','dr congo'],'ivory coast':["cote d'ivoire",'côte'],'bosnia':['bosnia-herzegovina','bosnia & herzegovina'],'south korea':['korea republic','korea rep'],'netherlands':['holland']};
+  for(const[key,alts]of Object.entries(aliases)){
+    if((nb.includes(key)||key.includes(nb))&&(alts.some(alt=>na.includes(alt)||alt.includes(na))||na.includes(key)||key.includes(na)))return true;
+    if((na.includes(key)||key.includes(na))&&(alts.some(alt=>nb.includes(alt)||alt.includes(nb))||nb.includes(key)||key.includes(nb)))return true;
+  }
+  return false;
+}
 
 function setAuStatus(cls,txt){const el=document.getElementById('au-status');if(el){el.className='au-status '+cls;el.textContent=txt;}}
 
@@ -1024,6 +1054,8 @@ async function autoUpdateResults(){
   catch(e){setAuStatus('error','Error API');console.error('Auto-update:',e.message);return;}
   const fdList=(data&&data.matches)||[];
   const finished=fdList.filter(x=>x.status==='FINISHED');
+  console.log(`Football-Data: ${fdList.length} partidos totales, ${finished.length} FINISHED`);
+  finished.forEach(x=>console.log(`  FD: ${x.homeTeam?.name} vs ${x.awayTeam?.name}`));
   let updated=0;
   for(const m of Object.values(allMatches)){
     if(m.status==='finished'||isPlaceholder(m))continue;
