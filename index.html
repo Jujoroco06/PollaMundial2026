@@ -402,7 +402,7 @@
     <div id="admin-tab-content" class="tab-content hidden">
       <div class="sub-tabs" style="grid-template-columns:repeat(4,1fr)">
         <button class="sub-tab active" id="admin-sub-resultados" onclick="switchAdminTab('resultados',this)">📝 Resultados</button>
-        <button class="sub-tab" id="admin-sub-auto" onclick="switchAdminTab('auto',this)">🤖 Auto-IA</button>
+        <button class="sub-tab" id="admin-sub-auto" onclick="switchAdminTab('auto',this)">🔄 Auto</button>
         <button class="sub-tab" id="admin-sub-usuarios" onclick="switchAdminTab('usuarios',this)">👥 Usuarios</button>
         <button class="sub-tab" id="admin-sub-config" onclick="switchAdminTab('config',this)">⚙️ Config</button>
       </div>
@@ -417,23 +417,27 @@
 
       <div id="admin-panel-auto" class="hidden">
         <div class="admin-section">
-          <div class="card-title">🤖 Auto-actualización con IA</div>
+          <div class="card-title">🔄 Auto-actualización de Resultados</div>
+          <div class="api-key-warning" id="api-key-warning" style="display:none">
+            ⚠️ <strong>Falta configurar el proxy.</strong> Football-Data bloquea el navegador por CORS. Crea un Cloudflare Worker y pega su URL en <code>FD_PROXY</code> dentro del HTML.
+          </div>
           <div class="auto-update-banner">
-            <div class="au-icon">🤖</div>
+            <div class="au-icon">📡</div>
             <div class="au-text">
-              <strong>Busca resultados usando IA + web search</strong>
-              <p>Detecta partidos con fecha pasada, busca el marcador en internet y lo registra automáticamente.</p>
+              <strong>Sincronización con Football-Data.org</strong>
+              <p>Trae el marcador a los 90 minutos (sin prórroga ni penales). Solo funciona desde el dispositivo del admin. Los demás ven los puntos vía Firebase en tiempo real.</p>
             </div>
-            <span class="au-status idle" id="au-status">Listo</span>
+            <span class="au-status idle" id="au-status">Inactivo</span>
           </div>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
-            <button class="btn btn-gold btn-sm" id="btn-auto-update" onclick="autoUpdateResults()">🔍 Actualizar Ahora</button>
-            <button class="btn btn-ghost btn-sm" onclick="toggleAuLog()">📋 Ver Log</button>
+            <button class="btn btn-gold btn-sm" onclick="assignFixtureIds()">🔗 Vincular partidos</button>
+            <button class="btn btn-blue btn-sm" onclick="autoUpdateResults()">⟳ Actualizar ahora</button>
+            <button class="btn btn-ghost btn-sm" onclick="apiDiagnostico()">🩺 Diagnóstico</button>
           </div>
-          <div class="au-log" id="au-log"><div id="au-log-content" style="color:var(--muted2);font-style:italic">Sin registros aún.</div></div>
           <div class="info-banner" style="margin-top:.75rem;margin-bottom:0">
-            Busca marcadores de partidos <strong>con fecha anterior a hoy</strong> que aún estén pendientes.<br>
-            Los resultados se guardan en Firebase para todos los participantes.
+            <strong>🩺 Diagnóstico:</strong> primero pruébalo; muestra cuántos partidos del Mundial trae la API.<br>
+            <strong>⟳ Actualizar ahora:</strong> trae en una sola petición todos los resultados terminados y calcula los puntos.<br>
+            <strong>🔗 Vincular partidos</strong> es opcional. El marcador siempre se toma <strong>a 90 minutos</strong>.
           </div>
         </div>
       </div>
@@ -661,7 +665,6 @@ const WORLD_CUP_MATCHES=[
 function isPlaceholder(m){return/[°\/]|Ganador|Perdedor|Gan\.|Grupo/i.test(m.home+' '+m.away);}
 
 let currentUser=null,allUsers={},authorized={},allMatches={},allPredictions={},allScores={},deadlines={},scorerPreds={},officialScorer=null;
-let _auLog=[];
 
 function buildMatchList(fbMatches){
   const r={};
@@ -939,141 +942,103 @@ async function registerOfficialScorer(){
   if(Object.keys(updates).length)await fbUpdate('scores',updates);alert(`✅ Goleador oficial: ${name} (${goals} goles). Puntos calculados.`);
 }
 
-/* ===== AUTO-UPDATE CON IA (Anthropic API + Web Search) ===== */
-/* Reemplaza API-Football — funciona sin IDs, busca resultados en tiempo real */
+// ============================================================
+//  HELPERS DE FOOTBALL-DATA.ORG
+// ============================================================
+const FD_API_KEY='c5e6c0324d42457d99489126ba31267e';
+const FD_PROXY='https://polla-proxy.juanjoseroco06.workers.dev';
+const FD_BASE='https://api.football-data.org/v4';
+const FD_COMPETITION='WC';
 
-function setAuStatus(cls,txt){
-  const el=document.getElementById('au-status');
-  if(el){el.className='au-status '+cls;el.textContent=txt;}
+async function apiFetch(path){
+  if(!FD_PROXY&&(!FD_API_KEY||FD_API_KEY==='AQUI_TU_API_KEY')){throw new Error('Falta configurar el proxy (FD_PROXY) o la API Key.');}
+  const url=(FD_PROXY?FD_PROXY:FD_BASE)+path;
+  const opts=FD_PROXY?{}:{headers:{'X-Auth-Token':FD_API_KEY}};
+  const res=await fetch(url,opts);
+  if(!res.ok){const text=await res.text().catch(()=>res.statusText);throw new Error(`API error ${res.status}: ${text}`);}
+  return res.json();
 }
-function auLog(msg){
-  const ts=new Date().toLocaleTimeString('es-CO');
-  _auLog.unshift(`[${ts}] ${msg}`);
-  if(_auLog.length>60)_auLog=_auLog.slice(0,60);
-  const logEl=document.getElementById('au-log-content');
-  if(logEl)logEl.innerHTML=_auLog.map(l=>`<div>${l}</div>`).join('');
+
+function score90(sc){
+  if(!sc)return null;
+  if(sc.duration&&sc.duration!=='REGULAR'&&sc.regularTime&&sc.regularTime.home!=null&&sc.regularTime.away!=null){return{home:sc.regularTime.home,away:sc.regularTime.away};}
+  if(sc.fullTime&&sc.fullTime.home!=null&&sc.fullTime.away!=null){return{home:sc.fullTime.home,away:sc.fullTime.away};}
+  return null;
 }
-function toggleAuLog(){
-  const log=document.getElementById('au-log');
-  if(log)log.classList.toggle('visible');
+
+function findFdMatch(localMatch,fdList){
+  let cands=fdList.filter(x=>teamMatch(localMatch.home,x.homeTeam?.name||x.homeTeam?.shortName||'')&&teamMatch(localMatch.away,x.awayTeam?.name||x.awayTeam?.shortName||''));
+  if(cands.length>1){const byDate=cands.filter(x=>(x.utcDate||'').slice(0,10)===localMatch.date);if(byDate.length)cands=byDate;}
+  return cands[0]||null;
+}
+
+const TEAM_TR={'mexico':'mexico','sudafrica':'south africa','egipto':'egypt','uruguay':'uruguay','canada':'canada','bosnia':'bosnia','bosnia-herzegovina':'bosnia','eeuu':'usa','paraguay':'paraguay','qatar':'qatar','suiza':'switzerland','brasil':'brazil','marruecos':'morocco','haiti':'haiti','escocia':'scotland','australia':'australia','turquia':'turkey','alemania':'germany','curazao':'curacao','paises bajos':'netherlands','japon':'japan','costa de marfil':'ivory coast','suecia':'sweden','tunez':'tunisia','espana':'spain','cabo verde':'cape verde','belgica':'belgium','arabia saudi':'saudi arabia','iran':'iran','nueva zelanda':'new zealand','francia':'france','senegal':'senegal','irak':'iraq','noruega':'norway','argentina':'argentina','argelia':'algeria','austria':'austria','jordania':'jordan','portugal':'portugal','congo':'congo','rd de congo':'dr congo','rep checa':'czech','rep. checa':'czech','corea del sur':'south korea','croacia':'croatia','ghana':'ghana','panama':'panama','uzbekistan':'uzbekistan','colombia':'colombia','inglaterra':'england'};
+function normT(s){return(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
+function teamMatch(a,b){const na=normT(a),nb=normT(b),ta=TEAM_TR[na]||na;return nb.includes(ta)||ta.includes(nb)||nb.includes(na)||na.includes(nb);}
+
+function setAuStatus(cls,txt){const el=document.getElementById('au-status');if(el){el.className='au-status '+cls;el.textContent=txt;}}
+
+async function apiDiagnostico(){
+  if(!currentUser?.isAdmin){alert('Solo el admin');return;}
+  setAuStatus('running','Diagnóstico…');
+  try{
+    const data=await apiFetch(`/competitions/${FD_COMPETITION}/matches`);
+    const ms=(data&&data.matches)||[];const fin=ms.filter(x=>x.status==='FINISHED').length;
+    setAuStatus(ms.length>0?'success':'idle',ms.length>0?`OK: ${ms.length} partidos`:'0 partidos');
+    let msg=`✅ Conexión OK con Football-Data.org\n\nMundial (${FD_COMPETITION}):\n- Partidos recibidos: ${ms.length}\n- Terminados (FINISHED): ${fin}\n\n`;
+    ms.slice(0,5).forEach(x=>{const h=x.homeTeam?.name||'?';const a=x.awayTeam?.name||'?';msg+=`• ${h} vs ${a} [${x.status}]\n`;});
+    if(ms.length>0)msg+=`\nSi ves partidos aquí, "Actualizar ahora" ya funciona.`;
+    else msg+=`\n⚠️ La API respondió sin partidos para el Mundial.`;
+    alert(msg);
+  }catch(e){
+    setAuStatus('error','Falló');
+    const proxyMsg=FD_PROXY?`Proxy en uso: ${FD_PROXY}\nRevisa que el Worker esté publicado y con el token correcto.`:`⚠️ No tienes proxy configurado.`;
+    alert(`❌ Error al conectar con Football-Data.org:\n\n${e.message}\n\n${proxyMsg}`);
+  }
+}
+
+async function assignFixtureIds(){
+  if(!currentUser?.isAdmin){alert('Solo el admin puede hacer esto');return;}
+  setAuStatus('running','Vinculando partidos…');
+  let data;
+  try{data=await apiFetch(`/competitions/${FD_COMPETITION}/matches`);}
+  catch(e){setAuStatus('error','Error API');alert('❌ No se pudo consultar la API:\n\n'+e.message);return;}
+  const fdList=(data&&data.matches)||[];
+  let assigned=0,notfound=0;
+  for(const m of Object.values(allMatches)){
+    if(isPlaceholder(m))continue;
+    const fx=findFdMatch(m,fdList);
+    if(fx){await fbUpdate(`matches/${m.id}`,{fixtureId:fx.id});m.fixtureId=fx.id;assigned++;}
+    else notfound++;
+  }
+  setAuStatus('success',`${assigned} vinculados`);
+  alert(`✅ Vinculación terminada:\n- Partidos vinculados: ${assigned}\n- No encontrados: ${notfound}\n- Partidos recibidos de la API: ${fdList.length}`);
+  renderAdminMatches();
 }
 
 async function autoUpdateResults(){
-  if(!currentUser?.isAdmin){alert('Solo administradores.');return;}
-  const btn=document.getElementById('btn-auto-update');
-  if(btn)btn.disabled=true;
-  setAuStatus('running','Buscando…');
-  auLog('🔍 Iniciando búsqueda automática con IA…');
-
-  // Partidos pendientes con fecha ya pasada (hora Colombia UTC-5)
-  const nowCol=new Date(new Date().getTime()-5*3600000);
-  const todayStr=nowCol.toISOString().slice(0,10);
-
-  const pending=Object.values(allMatches).filter(m=>{
-    if(m.status==='finished')return false;
-    if(isPlaceholder(m))return false;
-    return m.date<=todayStr;
-  });
-
-  if(!pending.length){
-    setAuStatus('idle','Sin partidos pendientes.');
-    auLog('✅ Ningún partido pendiente con fecha pasada.');
-    if(btn)btn.disabled=false;
-    return;
+  if(!currentUser?.isAdmin)return;
+  setAuStatus('running','Consultando resultados…');
+  let data;
+  try{data=await apiFetch(`/competitions/${FD_COMPETITION}/matches`);}
+  catch(e){setAuStatus('error','Error API');console.error('Auto-update:',e.message);return;}
+  const fdList=(data&&data.matches)||[];
+  const finished=fdList.filter(x=>x.status==='FINISHED');
+  let updated=0;
+  for(const m of Object.values(allMatches)){
+    if(m.status==='finished'||isPlaceholder(m))continue;
+    const fx=findFdMatch(m,finished);if(!fx)continue;
+    const sc=score90(fx.score);if(!sc||sc.home==null||sc.away==null)continue;
+    await fbUpdate(`matches/${m.id}`,{status:'finished',scoreHome:sc.home,scoreAway:sc.away,fixtureId:fx.id});
+    m.status='finished';m.scoreHome=sc.home;m.scoreAway=sc.away;m.fixtureId=fx.id;
+    const preds=allPredictions[m.id]||{};const scoreUpdates={};
+    Object.keys(preds).forEach(un=>{const p=preds[un];const{points}=computeMatchPoints(p.home,p.away,sc.home,sc.away,m.stage,m.color);if(points>0)scoreUpdates[un]=(allScores[un]||0)+points;});
+    if(Object.keys(scoreUpdates).length){await fbUpdate('scores',scoreUpdates);Object.keys(scoreUpdates).forEach(u=>{allScores[u]=scoreUpdates[u];});}
+    updated++;
+    console.log(`✅ ${m.home} ${sc.home}-${sc.away} ${m.away} (${m.stage}) [90']`);
   }
-
-  auLog(`📋 ${pending.length} partido(s) pendiente(s) encontrado(s).`);
-  const matchList=pending.map(m=>`Partido ${m.n}: ${m.home} vs ${m.away} (${m.date}, ${m.stage})`).join('\n');
-
-  const prompt=`Eres experto en el Mundial de Fútbol FIFA 2026 (sede: USA, Canadá y México).
-Fecha actual: ${todayStr}.
-
-Estos partidos del Mundial 2026 ya se jugaron. Necesito el marcador FINAL al término de los 90 minutos reglamentarios (sin tiempo extra ni penales para fases eliminatorias). Usa web search para verificar los resultados.
-
-${matchList}
-
-INSTRUCCIONES ESTRICTAS:
-- Responde SOLO con un array JSON, sin texto adicional, sin backticks ni markdown.
-- Incluye ÚNICAMENTE partidos cuyo resultado conozcas con certeza tras buscar en internet.
-- Si no sabes el resultado de un partido, NO lo incluyas.
-- Formato exacto: [{"n":NUMERO,"home":GOLES_LOCAL,"away":GOLES_VISITANTE}]
-- Los goles deben ser enteros >= 0 y <= 20.
-- Si no conoces ninguno, responde: []`;
-
-  try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:800,
-        tools:[{type:'web_search_20250305',name:'web_search'}],
-        messages:[{role:'user',content:prompt}]
-      })
-    });
-    if(!resp.ok){const t=await resp.text();throw new Error(`HTTP ${resp.status}: ${t.slice(0,150)}`);}
-    const data=await resp.json();
-    const rawText=data.content.filter(c=>c.type==='text').map(c=>c.text).join('');
-    auLog(`📡 Respuesta recibida de la IA.`);
-
-    let results=[];
-    try{
-      const m=rawText.match(/\[[\s\S]*?\]/);
-      if(m)results=JSON.parse(m[0]);
-    }catch(e){
-      auLog(`⚠️ Error parseando JSON: ${e.message}`);
-      auLog(`Respuesta: ${rawText.slice(0,200)}`);
-      setAuStatus('idle','Error al parsear respuesta.');
-      if(btn)btn.disabled=false;
-      return;
-    }
-
-    if(!Array.isArray(results)||!results.length){
-      auLog('ℹ️ No se encontraron resultados confirmados aún.');
-      setAuStatus('idle','Sin resultados aún.');
-      if(btn)btn.disabled=false;
-      return;
-    }
-
-    auLog(`✅ IA retornó ${results.length} resultado(s). Guardando en Firebase…`);
-    let registered=0;
-
-    for(const res of results){
-      if(typeof res.n!=='number'||typeof res.home!=='number'||typeof res.away!=='number')continue;
-      if(res.home<0||res.away<0||res.home>20||res.away>20)continue;
-      const matchId='m'+res.n;const match=allMatches[matchId];
-      if(!match||match.status==='finished')continue;
-
-      await fbUpdate(`matches/${matchId}`,{scoreHome:res.home,scoreAway:res.away,status:'finished'});
-
-      const preds=allPredictions[matchId]||{};const scoreUpdates={};
-      Object.keys(preds).forEach(un=>{
-        const p=preds[un];const{points}=computeMatchPoints(p.home,p.away,res.home,res.away,match.stage,match.color);
-        if(points>0)scoreUpdates[un]=(allScores[un]||0)+points;
-      });
-      if(Object.keys(scoreUpdates).length){
-        await fbUpdate('scores',scoreUpdates);
-        Object.keys(scoreUpdates).forEach(u=>{allScores[u]=scoreUpdates[u];});
-      }
-      auLog(`⚽ Partido ${res.n} (${match.home} vs ${match.away}): ${res.home}-${res.away} | ${Object.keys(preds).length} apuesta(s)`);
-      registered++;
-    }
-
-    if(registered>0){
-      setAuStatus('success',`${registered} actualizado(s)`);
-      auLog(`🏁 Listo: ${registered} partido(s) registrado(s).`);
-      if(_currentTab==='leaderboard')renderLeaderboard();
-      if(_currentTab==='admin')renderAdminMatches();
-      if(_currentTab==='bets-view')renderBetsView();
-    }else{
-      setAuStatus('idle','Resultados ya estaban al día.');
-      auLog('ℹ️ Ningún partido nuevo registrado.');
-    }
-  }catch(e){
-    auLog(`❌ Error: ${e.message}`);
-    setAuStatus('idle',`Error: ${e.message.slice(0,80)}`);
-  }
-  if(btn)btn.disabled=false;
+  setAuStatus(updated>0?'success':'idle',updated>0?`${updated} actualizado(s)`:'Al día');
+  if(updated>0){if(_currentTab==='leaderboard')renderLeaderboard();if(_currentTab==='admin')renderAdminMatches();if(_currentTab==='bets-view')renderBetsView();}
 }
 
 /* ===== ADMIN ===== */
