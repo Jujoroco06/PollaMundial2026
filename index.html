@@ -217,7 +217,7 @@
     <div class="logo">⚽ <span>García 2026</span></div>
     <div class="header-right">
       <div class="sync-dot" id="sync-dot"></div>
-      <div class="avatar-chip">
+      <div class="avatar-chip" onclick="openProfileModal()" style="cursor:pointer" title="Ver perfil / cambiar nick">
         <div class="av" id="user-avatar">U</div>
         <span class="av-name" id="user-name-display">—</span>
         <span class="hidden" id="admin-crown">👑</span>
@@ -482,6 +482,32 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<div id="profile-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>👤 Mi Perfil</h2><button class="close-btn" onclick="closeProfileModal()">&times;</button></div>
+    <div style="flex:1">
+      <div style="padding:.75rem;background:var(--surface2);border-radius:var(--r);margin-bottom:1.25rem;text-align:center">
+        <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--green2),var(--green));display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;color:#fff;margin:0 auto .5rem" id="profile-av-big">U</div>
+        <div style="font-weight:700;font-size:.95rem" id="profile-fullname">—</div>
+        <div style="color:var(--muted);font-size:.75rem;margin-top:.2rem">@<span id="profile-username-display">—</span></div>
+      </div>
+      <div class="form-group">
+        <label>Cambiar Nick (usuario visible)</label>
+        <input type="text" id="profile-new-username" placeholder="Nuevo nick (sin espacios, min 3 chars)" autocomplete="off">
+        <div style="font-size:.68rem;color:var(--muted);margin-top:4px">Solo letras, números y guiones bajos. El nick es tu nombre en la tabla.</div>
+      </div>
+      <div class="form-group">
+        <label>Confirma tu contraseña</label>
+        <input type="password" id="profile-confirm-pwd" placeholder="Tu contraseña actual" autocomplete="current-password">
+      </div>
+      <div class="error-msg" id="profile-error"></div>
+      <div class="success-msg" id="profile-success">✅ Nick actualizado correctamente.</div>
+    </div>
+    <button class="btn btn-gold" style="width:100%" onclick="handleChangeUsername()">Guardar Nuevo Nick ✓</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:.5rem" onclick="closeProfileModal()">Cancelar</button>
   </div>
 </div>
 
@@ -795,7 +821,7 @@ function renderMyGroupStandings(){
 
 /* ===== LEADERBOARD ===== */
 function renderLeaderboard(){
-  const r=Object.values(allUsers).filter(u=>!u.disabled).map(u=>({name:u.name,username:u.username,points:allScores[u.username]||0})).sort((a,b)=>b.points-a.points);
+  const r=Object.values(allUsers).filter(u=>!u.disabled&&u.username!=='juanj').map(u=>({name:u.name,username:u.username,points:allScores[u.username]||0})).sort((a,b)=>b.points-a.points);
   const myR=r.findIndex(x=>x.username===currentUser.username)+1;
   document.getElementById('total-matches').textContent=Object.values(allMatches).filter(m=>m.status==='finished').length;
   document.getElementById('my-points').textContent=allScores[currentUser.username]||0;
@@ -815,7 +841,7 @@ function renderBetsView(){
   if(!canSee){lm.classList.remove('hidden');document.getElementById('bets-viewer-list').innerHTML='';document.getElementById('bv-group-standings-wrap').innerHTML='';return;}
   lm.classList.add('hidden');
   const matches=Object.values(allMatches).filter(m=>m.stage===_bvStage);
-  const users=Object.values(allUsers).filter(u=>!u.disabled);
+  const users=Object.values(allUsers).filter(u=>!u.disabled&&u.username!=='juanj');
   document.getElementById('bets-viewer-list').innerHTML=matches.map(m=>{
     const preds=allPredictions[m.id]||{};const scoreStr=m.status==='finished'?`${m.scoreHome}-${m.scoreAway}`:'⏳';
     const rows=users.map(u=>{
@@ -825,7 +851,7 @@ function renderBetsView(){
       if(m.status==='finished'){const{points,label}=computeMatchPoints(pred.home,pred.away,m.scoreHome,m.scoreAway,m.stage,m.color);const col=label==='exact'?'var(--gold)':label==='correct'?'var(--green)':'var(--red)';const ico=label==='exact'?'⭐':label==='correct'?'✓':'✗';ptsHtml=`<span class="bv-pts" style="color:${col}">${ico} ${points}pts</span>`;}
       return`<div class="bv-row"><span class="bv-nick">${u.username}</span><span class="bv-pred">${pred.home} - ${pred.away}</span>${ptsHtml}</div>`;
     }).join('');
-    return`<div class="bv-match"><div class="bv-header"><span class="bv-title">${m.home} vs ${m.away} <span style="color:var(--muted);font-weight:400;font-size:.72rem">· ${m.date}</span></span><span class="bv-score">${scoreStr}</span></div>${rows}</div>`;
+    return`<div class="bv-match"><div class="bv-header"><span class="bv-title">${m.home} vs ${m.away} <span style="color:var(--muted);font-weight:400;font-size:.72rem">· ${m.date}</span>${colorBadge(m.color)}</span><span class="bv-score">${scoreStr}</span></div>${rows}</div>`;
   }).join('')||'<p style="color:var(--muted);padding:2rem;text-align:center">Sin partidos en esta fase.</p>';
   if(_bvStage==='Grupos')renderBvGroupStandings(users);else document.getElementById('bv-group-standings-wrap').innerHTML='';
 }
@@ -1123,6 +1149,73 @@ function showPointsDetail(matchId){
 function isMatchLocked(match){if(match.status==='finished')return true;const dl=deadlines[match.stage];if(dl&&new Date()>=new Date(dl))return true;return false;}
 const COL_FLAG=`<svg class="col-flag" width="22" height="15" viewBox="0 0 22 15" xmlns="http://www.w3.org/2000/svg"><rect width="22" height="7.5" fill="#FCD116"/><rect y="7.5" width="22" height="3.75" fill="#003087"/><rect y="11.25" width="22" height="3.75" fill="#CE1126"/></svg>`;
 function colorBadge(color){if(color==='grey')return'<span class="color-badge-grey" title="Gris: +2pts"></span>';if(color==='yellow')return'<span class="color-badge-yellow" title="Amarillo: ×2pts"></span>';if(color==='colombia')return COL_FLAG;return'';}
+/* ===== PERFIL / CAMBIO DE NICK ===== */
+function openProfileModal(){
+  if(!currentUser)return;
+  document.getElementById('profile-av-big').textContent=currentUser.name[0].toUpperCase();
+  document.getElementById('profile-fullname').textContent=currentUser.name;
+  document.getElementById('profile-username-display').textContent=currentUser.username;
+  document.getElementById('profile-new-username').value='';
+  document.getElementById('profile-confirm-pwd').value='';
+  document.getElementById('profile-error').style.display='none';
+  document.getElementById('profile-success').style.display='none';
+  document.getElementById('profile-modal').classList.add('active');
+}
+function closeProfileModal(){
+  document.getElementById('profile-modal').classList.remove('active');
+}
+async function handleChangeUsername(){
+  const newNick=document.getElementById('profile-new-username').value.trim().toLowerCase();
+  const pwd=document.getElementById('profile-confirm-pwd').value;
+  const err=document.getElementById('profile-error');
+  const succ=document.getElementById('profile-success');
+  err.style.display='none';succ.style.display='none';
+  if(!newNick){showErr(err,'Ingresa el nuevo nick');return;}
+  if(newNick.length<3){showErr(err,'Mínimo 3 caracteres');return;}
+  if(!/^[a-z0-9_]+$/.test(newNick)){showErr(err,'Solo letras, números y guiones bajos (sin espacios)');return;}
+  if(!pwd){showErr(err,'Confirma tu contraseña');return;}
+  if(hashPwd(pwd)!==currentUser.passwordHash){showErr(err,'Contraseña incorrecta');return;}
+  if(newNick===currentUser.username){showErr(err,'Es el mismo nick actual');return;}
+  const users=await fbGet('users')||{};
+  if(users[newNick]){showErr(err,'Ese nick ya está en uso');return;}
+  // Copiar datos del usuario al nuevo key
+  const userData={...currentUser,username:newNick};
+  await fbSet(`users/${newNick}`,userData);
+  // Migrar puntos
+  const pts=allScores[currentUser.username]||0;
+  if(pts>0)await fbSet(`scores/${newNick}`,pts);
+  // Migrar predicciones
+  const predsSnap=await fbGet('predictions')||{};
+  const predUpdates={};
+  Object.keys(predsSnap).forEach(matchId=>{
+    if(predsSnap[matchId][currentUser.username]!==undefined){
+      predUpdates[`predictions/${matchId}/${newNick}`]=predsSnap[matchId][currentUser.username];
+    }
+  });
+  if(Object.keys(predUpdates).length)await db.ref().update(predUpdates);
+  // Migrar goleador
+  const scorerPred=await fbGet(`scorerPreds/${currentUser.username}`);
+  if(scorerPred)await fbSet(`scorerPreds/${newNick}`,scorerPred);
+  // Borrar entradas antiguas
+  await db.ref(`users/${currentUser.username}`).remove();
+  if(pts>0)await db.ref(`scores/${currentUser.username}`).remove();
+  await db.ref(`scorerPreds/${currentUser.username}`).remove();
+  const oldPredCleans={};
+  Object.keys(predsSnap).forEach(matchId=>{
+    if(predsSnap[matchId][currentUser.username]!==undefined)
+      oldPredCleans[`predictions/${matchId}/${currentUser.username}`]=null;
+  });
+  if(Object.keys(oldPredCleans).length)await db.ref().update(oldPredCleans);
+  // Actualizar sesión
+  currentUser=userData;
+  saveSession(newNick);
+  // Refrescar UI
+  document.getElementById('user-name-display').textContent=currentUser.name.split(' ')[0];
+  document.getElementById('profile-username-display').textContent=newNick;
+  succ.style.display='block';
+  setTimeout(()=>closeProfileModal(),1500);
+}
+
 function render(){renderLeaderboard();}
 window.addEventListener('DOMContentLoaded',initializeData);
 </script>
