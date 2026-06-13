@@ -980,8 +980,30 @@ async function apiFetch(path){
 
 function score90(sc){
   if(!sc)return null;
-  if(sc.duration&&sc.duration!=='REGULAR'&&sc.regularTime&&sc.regularTime.home!=null&&sc.regularTime.away!=null){return{home:sc.regularTime.home,away:sc.regularTime.away};}
-  if(sc.fullTime&&sc.fullTime.home!=null&&sc.fullTime.away!=null){return{home:sc.fullTime.home,away:sc.fullTime.away};}
+
+  // Si hubo tiempo extra o penales, tomar regularTime (resultado a 90')
+  if(sc.regularTime&&sc.regularTime.home!=null&&sc.regularTime.away!=null){
+    return{home:sc.regularTime.home,away:sc.regularTime.away};
+  }
+
+  // Si el partido terminó en tiempo regular, fullTime ES el resultado a 90'
+  if(sc.duration==='REGULAR'&&sc.fullTime&&sc.fullTime.home!=null&&sc.fullTime.away!=null){
+    return{home:sc.fullTime.home,away:sc.fullTime.away};
+  }
+
+  // Fallback: si no hay regularTime pero sí fullTime y no sabemos duración,
+  // usamos halfTime para verificar que es tiempo regular
+  // (si hay extraTime disponible, preferir regularTime)
+  if(sc.extraTime&&sc.regularTime==null){
+    // Hay tiempo extra pero no tenemos regularTime — no podemos saber el 90'
+    console.warn('⚠️ Partido con extraTime pero sin regularTime — esperando datos completos');
+    return null;
+  }
+
+  if(sc.fullTime&&sc.fullTime.home!=null&&sc.fullTime.away!=null){
+    return{home:sc.fullTime.home,away:sc.fullTime.away};
+  }
+
   return null;
 }
 
