@@ -849,8 +849,7 @@ function renderLeaderboard(){
   document.getElementById('my-points').textContent=allScores[currentUser.username]||0;
   document.getElementById('my-rank').textContent=myR>0?'#'+myR:'—';
   const medals=['🥇','🥈','🥉'];
-  document.getElementById('leaderboard-list').innerHTML=r.map((x,i)=>`<div class="lb-row ${x.username===currentUser.username?'me':''} ${i===0?'rank-1':''}"><div class="rank-num">${medals[i]||i+1}</div><div class="lb-info"><div class="lb-av">${x.name[0].toUpperCase()}</div><span>${x.name}</span></div><div class="lb-pts">${x.points}</div></div>`).join('')||'<p style="color:var(--muted);text-align:center;padding:2rem">Aún no hay participantes.</p>';
-}
+document.getElementById('leaderboard-list').innerHTML=r.map((x,i)=>`<div class="lb-row ${x.username===currentUser.username?'me':''} ${i===0?'rank-1':''}"><div class="rank-num">${medals[i]||i+1}</div><div class="lb-info"><div class="lb-av">${x.username[0].toUpperCase()}</div><span>${x.username}</span></div><div class="lb-pts">${x.points}</div></div>`).join('')||'<p style="color:var(--muted);text-align:center;padding:2rem">Aún no hay participantes.</p>';}
 
 /* ===== VER APUESTAS ===== */
 let _bvStage='Grupos';
