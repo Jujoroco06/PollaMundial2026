@@ -339,6 +339,7 @@
         <div class="filter-group" id="bv-filter-group"></div>
         <div id="bets-viewer-list"></div>
         <div id="bv-group-standings-wrap"></div>
+        <div id="bv-group-accum-wrap"></div>
       </div>
     </div>
 
@@ -894,7 +895,7 @@ function renderBetsView(){
   document.getElementById('bv-filter-group').innerHTML=stages.map(s=>`<button class="filter-btn ${s===_bvStage?'active':''}" onclick="filterBetsView('${s}',this)">${s}</button>`).join('');
   const canSee=isStageDeadlinePassed(_bvStage)||currentUser?.isAdmin;
   const lm=document.getElementById('bets-view-locked-msg');
-  if(!canSee){lm.classList.remove('hidden');document.getElementById('bets-viewer-list').innerHTML='';document.getElementById('bv-group-standings-wrap').innerHTML='';return;}
+  if(!canSee){lm.classList.remove('hidden');document.getElementById('bets-viewer-list').innerHTML='';document.getElementById('bv-group-standings-wrap').innerHTML='';document.getElementById('bv-group-accum-wrap').innerHTML='';return;}
   lm.classList.add('hidden');
   const matches=Object.values(allMatches).filter(m=>m.stage===_bvStage).sort((a,b)=>_bvSort==='recientes'?(b.date.localeCompare(a.date)||b.n-a.n):(a.date.localeCompare(b.date)||a.n-b.n));
   const users=Object.values(allUsers).filter(u=>!u.disabled&&u.username!=='juanj');
@@ -910,7 +911,23 @@ function renderBetsView(){
     }).join('');
     return`<div class="bv-match"><div class="bv-header"><span class="bv-title">${m.home} vs ${m.away} <span style="color:var(--muted);font-weight:400;font-size:.72rem">· ${m.date}</span>${colorBadge(m.color)}</span><span class="bv-score">${scoreStr}</span></div>${rows}</div>`;
   }).join('')||'<p style="color:var(--muted);padding:2rem;text-align:center">Sin partidos en esta fase.</p>';
-  if(_bvStage==='Grupos')renderBvGroupStandings(users);else document.getElementById('bv-group-standings-wrap').innerHTML='';
+  if(_bvStage==='Grupos'){renderBvGroupStandings(users);renderBvGroupAccum(users);}else{document.getElementById('bv-group-standings-wrap').innerHTML='';document.getElementById('bv-group-accum-wrap').innerHTML='';}
+}
+function renderBvGroupAccum(users){
+  const wrap=document.getElementById('bv-group-accum-wrap');if(!wrap)return;
+  const grps=[...new Set(WORLD_CUP_MATCHES.filter(m=>m.stage==='Grupos'&&m.group).map(m=>m.group))];
+  const rows=users.map(u=>{
+    let mp=0,qp=0;
+    Object.values(allMatches).forEach(m=>{
+      if(m.stage!=='Grupos'||m.status!=='finished')return;
+      const p=allPredictions[m.id]?.[u.username];if(!p)return;
+      mp+=computeMatchPoints(p.home,p.away,m.scoreHome,m.scoreAway,m.stage,m.color).points;
+    });
+    grps.forEach(grp=>{const r=groupQualyPointsFor(u.username,grp);if(r)qp+=r.pts;});
+    return {nick:u.username,mp,qp,tot:mp+qp};
+  }).sort((a,b)=>b.tot-a.tot);
+  const body=rows.map((r,i)=>`<div class="bv-group-row"><span class="bv-group-nick">${i+1}. ${r.nick}</span><span style="font-size:.78rem;text-align:right">⚽ ${r.mp} + 🏅 ${r.qp}<br><span style="font-weight:800;color:var(--gold)">${r.tot} pts</span></span></div>`).join('');
+  wrap.innerHTML=`<div class="bv-group-section"><div class="bv-group-section-title">🏆 Acumulado de la fase de grupos</div><div class="bv-group-grid"><div class="bv-group-card"><div class="bv-group-header">⚽ marcadores + 🏅 clasificados</div>${body}</div></div></div>`;
 }
 function renderBvGroupStandings(users){
   const wrap=document.getElementById('bv-group-standings-wrap');
