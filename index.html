@@ -1394,7 +1394,8 @@ async function resolveKnockoutTeams(){
     if(groupsDone[m.group]===undefined)groupsDone[m.group]=true;
     if(allMatches['m'+m.n]?.status!=='finished')groupsDone[m.group]=false;
   });
-  const st=computeOfficialStandings();const updates={};let resolved=0;
+  const st=computeOfficialStandings();const updates={};let resolved=0,thirds=0;
+  // 1° y 2° de grupo (casilla fija)
   Object.values(allMatches).forEach(m=>{
     if(m.stage==='Grupos')return;
     [['home',m.home],['away',m.away]].forEach(([side,val])=>{
@@ -1404,10 +1405,34 @@ async function resolveKnockoutTeams(){
       if(team){updates['matches/'+m.id+'/'+side]=team;resolved++;}
     });
   });
-  if(!resolved){alert('Todavía no hay cruces 1°/2° por resolver (faltan resultados de grupos completos).');return;}
-  if(!confirm(`Se asignarán los clasificados reales a ${resolved} casillas (1° y 2° de grupo) en eliminatorias.\n\nLos cruces con "3er lugar" o rondas posteriores (Ganador X) se registran a mano.\n\n¿Continuar?`))return;
+  // 8 mejores terceros (requiere los 12 grupos completos)
+  const allDone=Object.keys(groupsDone).length>=12&&Object.values(groupsDone).every(Boolean);
+  if(allDone){
+    const ranked=Object.keys(st).map(grp=>{const t=st[grp]&&st[grp][2];return t?{grp,name:t.name,pts:t.pts,gd:t.gf-t.gc,gf:t.gf}:null;}).filter(Boolean)
+      .sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf||a.grp.localeCompare(b.grp));
+    const top8=ranked.slice(0,8);
+    const slots=[];
+    WORLD_CUP_MATCHES.forEach(m=>{const mt=/^3° ([A-L/]+)$/.exec(m.away);if(mt)slots.push({id:'m'+m.n,side:'away',groups:mt[1].split('/')});});
+    // Emparejamiento bipartito (Kuhn): cada tercero -> una casilla cuyo grupo sea elegible
+    const slotTeam={};
+    const tryAssign=(ti,seen)=>{
+      for(let si=0;si<slots.length;si++){
+        if(seen[si])continue;
+        if(slots[si].groups.includes(top8[ti].grp)){
+          seen[si]=true;
+          if(slotTeam[si]===undefined||tryAssign(slotTeam[si],seen)){slotTeam[si]=ti;return true;}
+        }
+      }
+      return false;
+    };
+    for(let ti=0;ti<top8.length;ti++)tryAssign(ti,{});
+    Object.keys(slotTeam).forEach(si=>{const slot=slots[si];updates['matches/'+slot.id+'/'+slot.side]=top8[slotTeam[si]].name;resolved++;thirds++;});
+  }
+  if(!resolved){alert('Todavía no hay clasificados por resolver (faltan resultados de grupos completos).');return;}
+  const msg=`Se asignarán los clasificados reales a ${resolved} casillas`+(allDone?` (1°, 2° y los 8 mejores 3°).`:` (1° y 2°). Los 8 mejores 3° se asignan cuando TODOS los grupos estén completos.`)+`\n\nNota: la casilla exacta del 3° puede diferir de la tabla oficial de FIFA; verifica y ajusta con ✏️ Equipos si hace falta.\n\n¿Continuar?`;
+  if(!confirm(msg))return;
   await db.ref().update(updates);
-  alert(`✅ ${resolved} casillas resueltas con los clasificados reales.\nAhora el auto-update puede traer esos partidos por nombre. Verifica que los equipos sean correctos.`);
+  alert(`✅ ${resolved} casillas resueltas`+(thirds?` (incluye ${thirds} terceros).`:`.`)+`\nRevisa los cruces de 3° y ajusta con ✏️ Equipos si alguno no coincide con el cuadro oficial.`);
 }
 
 /* ===== HORARIOS / CIERRE X MIN ANTES DEL PARTIDO ===== */
