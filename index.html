@@ -704,7 +704,7 @@ function buildMatchList(fbMatches){
   const r={};
   WORLD_CUP_MATCHES.forEach(m=>{
     const id='m'+m.n;const saved=fbMatches?fbMatches[id]:null;
-    r[id]={id,n:m.n,home:saved?.home||m.home,away:saved?.away||m.away,date:m.date,stage:m.stage,group:m.group||'',color:m.color||'normal',status:saved?.status||'pending',scoreHome:saved?.scoreHome??null,scoreAway:saved?.scoreAway??null,kickoff:saved?.kickoff||null,fixtureId:saved?.fixtureId||null};
+    r[id]={id,n:m.n,home:saved?.home||m.home,away:saved?.away||m.away,date:m.date,stage:m.stage,group:m.group||'',color:m.color||'normal',status:saved?.status||'pending',scoreHome:saved?.scoreHome??null,scoreAway:saved?.scoreAway??null,kickoff:saved?.kickoff||null,fixtureId:saved?.fixtureId||null,advance:saved?.advance||null};
   });
   return r;
 }
@@ -1198,8 +1198,11 @@ async function autoUpdateResults(){
     }
     const sc = score90(fx.score);
     if(!sc||sc.home==null||sc.away==null) continue;
-    await fbUpdate(`matches/${m.id}`,{status:'finished',scoreHome:sc.home,scoreAway:sc.away,fixtureId:fx.id});
-    m.status='finished'; m.scoreHome=sc.home; m.scoreAway=sc.away;
+    const advSide=m.stage==='Grupos'?null:(sc.home>sc.away?'home':sc.away>sc.home?'away':(fx.score?.winner==='HOME_TEAM'?'home':fx.score?.winner==='AWAY_TEAM'?'away':null));
+    const _upd={status:'finished',scoreHome:sc.home,scoreAway:sc.away,fixtureId:fx.id};
+    if(advSide)_upd.advance=advSide;
+    await fbUpdate(`matches/${m.id}`,_upd);
+    m.status='finished'; m.scoreHome=sc.home; m.scoreAway=sc.away; if(advSide)m.advance=advSide;
     updated++;
     console.log(`✅ ${m.home} ${sc.home}-${sc.away} ${m.away} [90']`);
   }
@@ -1264,8 +1267,19 @@ function openResultModal(matchId){const m=allMatches[matchId];document.getElemen
 async function handleRegisterResult(){
   const matchId=document.getElementById('result-modal').dataset.matchId;const home=parseInt(document.getElementById('result-home').value);const away=parseInt(document.getElementById('result-away').value);
   const err=document.getElementById('result-error');if(isNaN(home)||isNaN(away)){showErr(err,'Ingresa números válidos');return;}
-  const match=allMatches[matchId];await fbUpdate(`matches/${matchId}`,{scoreHome:home,scoreAway:away,status:'finished'});
-  match.status='finished';match.scoreHome=home;match.scoreAway=away;
+  const match=allMatches[matchId];
+  const upd={scoreHome:home,scoreAway:away,status:'finished'};
+  if(match.stage!=='Grupos'){
+    if(home===away){
+      const who=prompt(`Empate a 90'. ¿Quién avanzó (penales/prórroga)?\nEscribe 1 para ${match.home} o 2 para ${match.away}:`,'1');
+      if(who===null)return;
+      upd.advance=(who.trim()==='2')?'away':'home';
+    }else{
+      upd.advance=home>away?'home':'away';
+    }
+  }
+  await fbUpdate(`matches/${matchId}`,upd);
+  match.status='finished';match.scoreHome=home;match.scoreAway=away;match.advance=upd.advance||null;
   await persistTotals();
   closeModal();alert('✅ Resultado registrado. Puntos recalculados.');
 }
@@ -1302,6 +1316,10 @@ function groupQualyPointsFor(username,grp){
   if(p2){if(p2===o2)pts+=12;else if(p2===o1)pts+=8;}
   return {pts};
 }
+/* ===== Bonos por equipo que clasifica en eliminatorias ===== */
+function knockoutAdvanceBonus(stage){return {'Dieciseisavos':20,'Octavos':25,'Cuartos':30}[stage]||0;}
+function actualAdvanceSide(m){if(m.status!=='finished')return null;if(m.scoreHome>m.scoreAway)return 'home';if(m.scoreAway>m.scoreHome)return 'away';return m.advance||null;}
+function predAdvanceSide(p){if(!p)return null;const h=parseInt(p.home),a=parseInt(p.away);if(!isNaN(h)&&!isNaN(a)){if(h>a)return 'home';if(a>h)return 'away';}return p.advance||null;}
 function computeAllTotals(){
   const totals={};
   Object.values(allUsers).forEach(u=>{if(u&&!u.disabled)totals[u.username]=0;});
@@ -1319,6 +1337,18 @@ function computeAllTotals(){
   const _allGroups=[...new Set(WORLD_CUP_MATCHES.filter(m=>m.stage==='Grupos'&&m.group).map(m=>m.group))];
   Object.keys(totals).forEach(un=>{
     _allGroups.forEach(grp=>{const r=groupQualyPointsFor(un,grp);if(r)totals[un]+=r.pts;});
+  });
+  // Bonos por equipos que clasifican en eliminatorias (además del marcador)
+  Object.values(allMatches).forEach(m=>{
+    if(m.status!=='finished'||m.stage==='Grupos')return;
+    const actual=actualAdvanceSide(m);if(!actual)return;
+    const preds=allPredictions[m.id]||{};
+    let bonus=0;
+    if(m.stage==='Dieciseisavos'||m.stage==='Octavos'||m.stage==='Cuartos')bonus=knockoutAdvanceBonus(m.stage);
+    else if(m.stage==='Final')bonus=100;            // campeón 60 + subcampeón 40
+    else if(m.stage==='Tercer Puesto')bonus=45;     // 3° 30 + 4° 15
+    if(!bonus)return;                                 // Semifinales no dan bono aparte
+    Object.keys(preds).forEach(un=>{if(totals[un]!==undefined&&predAdvanceSide(preds[un])===actual)totals[un]+=bonus;});
   });
   if(officialScorer&&officialScorer.name){
     Object.keys(scorerPreds).forEach(un=>{
