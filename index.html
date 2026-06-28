@@ -430,7 +430,11 @@
       <div id="admin-panel-resultados">
         <div class="admin-section">
           <div class="card-title">📝 Registrar Resultados</div>
-          <div class="info-banner">Las eliminatorias (16avos en adelante) se registran <strong>manualmente</strong> aquí, porque la API no puede emparejar equipos con nombre provisional.</div>
+          <div class="info-banner">Las eliminatorias se registran <strong>manualmente</strong> aquí. Cuando terminen los grupos, usa <strong>"Resolver clasificados"</strong> para que los cruces 1°/2° muestren los equipos reales y el auto-update pueda traerlos. Si los puntos no cuadran, usa <strong>"Recalcular puntos"</strong>.</div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
+            <button class="btn btn-gold btn-sm" onclick="recalcAllScores()">♻️ Recalcular puntos</button>
+            <button class="btn btn-blue btn-sm" onclick="resolveKnockoutTeams()">🔗 Resolver clasificados (1°/2°)</button>
+          </div>
           <div class="filter-group" id="admin-filter-group"></div>
           <div class="matches-grid" id="admin-matches-list"></div>
         </div>
@@ -497,6 +501,15 @@
           <div class="info-banner">Al pasar la fecha límite: <strong>nadie puede editar</strong> apuestas y las apuestas de todos se vuelven visibles.</div>
           <div id="deadline-categories" style="display:flex;flex-direction:column;gap:1rem;"></div>
           <button class="btn btn-gold" style="width:100%;margin-top:1rem" onclick="saveAllDeadlines()">💾 Guardar Fechas</button>
+        </div>
+        <div class="admin-section">
+          <div class="card-title">⏱️ Cierre automático antes de cada partido</div>
+          <div class="info-banner">Cierra cada apuesta unos minutos antes de que empiece el partido (además de las fechas límite por fase). <strong>1)</strong> Trae los horarios desde la API. <strong>2)</strong> Define los minutos (0 = desactivado).</div>
+          <div class="form-group"><label>Minutos antes del inicio</label><input type="number" id="lock-minutes" min="0" placeholder="Ej: 30"></div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+            <button class="btn btn-gold" onclick="saveLockMinutes()">💾 Guardar minutos</button>
+            <button class="btn btn-blue" onclick="fetchKickoffTimes()">📡 Traer horarios</button>
+          </div>
         </div>
         <div class="admin-section">
           <div class="card-title">🥅 Goleador Oficial</div>
@@ -684,7 +697,7 @@ function buildMatchList(fbMatches){
   const r={};
   WORLD_CUP_MATCHES.forEach(m=>{
     const id='m'+m.n;const saved=fbMatches?fbMatches[id]:null;
-    r[id]={id,n:m.n,home:m.home,away:m.away,date:m.date,stage:m.stage,group:m.group||'',color:m.color||'normal',status:saved?.status||'pending',scoreHome:saved?.scoreHome??null,scoreAway:saved?.scoreAway??null};
+    r[id]={id,n:m.n,home:saved?.home||m.home,away:saved?.away||m.away,date:m.date,stage:m.stage,group:m.group||'',color:m.color||'normal',status:saved?.status||'pending',scoreHome:saved?.scoreHome??null,scoreAway:saved?.scoreAway??null,kickoff:saved?.kickoff||null,fixtureId:saved?.fixtureId||null};
   });
   return r;
 }
@@ -1007,9 +1020,9 @@ async function saveScorer(){
 async function registerOfficialScorer(){
   const name=document.getElementById('official-scorer-name').value.trim();const goals=parseInt(document.getElementById('official-scorer-goals').value);
   if(!name||isNaN(goals)){alert('Completa nombre y goles');return;}
-  await fbSet('officialScorer',{name,goals});const updates={};
-  Object.keys(scorerPreds).forEach(un=>{const p=scorerPreds[un];const nm=p.name.toLowerCase().trim()===name.toLowerCase().trim();const gm=p.goals===goals;let pts=0;if(nm&&gm)pts=20;else if(nm)pts=10;else if(gm)pts=25;if(pts>0)updates[un]=(allScores[un]||0)+pts;});
-  if(Object.keys(updates).length)await fbUpdate('scores',updates);alert(`✅ Goleador oficial: ${name} (${goals} goles). Puntos calculados.`);
+  await fbSet('officialScorer',{name,goals});officialScorer={name,goals};
+  await persistTotals();
+  alert(`✅ Goleador oficial: ${name} (${goals} goles). Puntos recalculados.`);
 }
 
 // ============================================================
@@ -1176,20 +1189,10 @@ async function autoUpdateResults(){
     if(!sc||sc.home==null||sc.away==null) continue;
     await fbUpdate(`matches/${m.id}`,{status:'finished',scoreHome:sc.home,scoreAway:sc.away,fixtureId:fx.id});
     m.status='finished'; m.scoreHome=sc.home; m.scoreAway=sc.away;
-    const preds=allPredictions[m.id]||{};
-    const scoreUpdates={};
-    Object.keys(preds).forEach(un=>{
-      const p=preds[un];
-      const{points}=computeMatchPoints(p.home,p.away,sc.home,sc.away,m.stage,m.color);
-      if(points>0) scoreUpdates[un]=(allScores[un]||0)+points;
-    });
-    if(Object.keys(scoreUpdates).length){
-      await fbUpdate('scores',scoreUpdates);
-      Object.keys(scoreUpdates).forEach(u=>{allScores[u]=scoreUpdates[u];});
-    }
     updated++;
     console.log(`✅ ${m.home} ${sc.home}-${sc.away} ${m.away} [90']`);
   }
+  if(updated>0) await persistTotals();
   setAuStatus(updated>0?'success':'idle', updated>0?`${updated} actualizado(s)`:'Al día');
   if(updated>0){
     if(_currentTab==='leaderboard') renderLeaderboard();
@@ -1228,6 +1231,7 @@ async function reactivateUser(name,un){if(!confirm(`¿Reactivar a "${name}"?`))r
 function renderDeadlineCategories(){
   const el=document.getElementById('deadline-categories');if(!el)return;
   el.innerHTML=CATEGORIES.map(cat=>{const dl=deadlines[cat]||'';const dtVal=dl?(()=>{const d=new Date(dl);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);})():'';return`<div style="padding:1rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r)"><label style="margin-bottom:.5rem">${cat}</label><input type="datetime-local" id="deadline-${cat}" value="${dtVal}"><small style="color:var(--muted);font-size:.7rem;display:block;margin-top:4px">Al pasar: bloqueo + apuestas visibles para todos</small></div>`;}).join('');
+  const lm=document.getElementById('lock-minutes');if(lm)lm.value=deadlines.__lockMinutesBefore||'';
 }
 async function saveAllDeadlines(){const updates={};CATEGORIES.forEach(cat=>{const val=document.getElementById(`deadline-${cat}`)?.value;if(val)updates[cat]=new Date(val).toISOString();});await fbUpdate('deadlines',updates);document.getElementById('filter-group').innerHTML='';renderAllMatches();alert('✅ Fechas guardadas.');}
 
@@ -1248,17 +1252,16 @@ async function handleRegisterResult(){
   const matchId=document.getElementById('result-modal').dataset.matchId;const home=parseInt(document.getElementById('result-home').value);const away=parseInt(document.getElementById('result-away').value);
   const err=document.getElementById('result-error');if(isNaN(home)||isNaN(away)){showErr(err,'Ingresa números válidos');return;}
   const match=allMatches[matchId];await fbUpdate(`matches/${matchId}`,{scoreHome:home,scoreAway:away,status:'finished'});
-  const preds=allPredictions[matchId]||{};const scoreUpdates={};
-  Object.keys(preds).forEach(un=>{const p=preds[un];const{points}=computeMatchPoints(p.home,p.away,home,away,match.stage,match.color);if(points>0)scoreUpdates[un]=(allScores[un]||0)+points;});
-  if(Object.keys(scoreUpdates).length)await fbUpdate('scores',scoreUpdates);
-  closeModal();alert('✅ Resultado registrado. Puntos calculados.');
+  match.status='finished';match.scoreHome=home;match.scoreAway=away;
+  await persistTotals();
+  closeModal();alert('✅ Resultado registrado. Puntos recalculados.');
 }
 async function undoResult(matchId){
-  if(!confirm('¿Revertir resultado? Se restará el puntaje.'))return;
-  const match=allMatches[matchId];const preds=allPredictions[matchId]||{};const scoreUpdates={};
-  Object.keys(preds).forEach(un=>{const p=preds[un];const{points}=computeMatchPoints(p.home,p.away,match.scoreHome,match.scoreAway,match.stage,match.color);if(points>0)scoreUpdates[un]=(allScores[un]||0)-points;});
-  if(Object.keys(scoreUpdates).length)await fbUpdate('scores',scoreUpdates);
+  if(!confirm('¿Revertir resultado? Se recalcularán los puntos.'))return;
+  const match=allMatches[matchId];
+  match.status='pending';match.scoreHome=null;match.scoreAway=null;
   await fbUpdate(`matches/${matchId}`,{scoreHome:null,scoreAway:null,status:'pending'});
+  await persistTotals();
 }
 function showPointsDetail(matchId){
   const match=allMatches[matchId];const preds=allPredictions[matchId]||{};
@@ -1268,7 +1271,125 @@ function showPointsDetail(matchId){
   alert(text);
 }
 
-function isMatchLocked(match){if(match.status==='finished')return true;const dl=deadlines[match.stage];if(dl&&new Date()>=new Date(dl))return true;return false;}
+/* ===== RECÁLCULO ROBUSTO DE PUNTOS (fuente de verdad) ===== */
+function computeAllTotals(){
+  const totals={};
+  Object.values(allUsers).forEach(u=>{if(u&&!u.disabled)totals[u.username]=0;});
+  Object.values(allMatches).forEach(m=>{
+    if(m.status!=='finished')return;
+    const preds=allPredictions[m.id]||{};
+    Object.keys(preds).forEach(un=>{
+      if(totals[un]===undefined)return;
+      const p=preds[un];
+      const{points}=computeMatchPoints(p.home,p.away,m.scoreHome,m.scoreAway,m.stage,m.color);
+      totals[un]+=points;
+    });
+  });
+  // Puntos por clasificados de grupo: 15 (1° exacto), 12 (2° exacto), 8 (clasificó top-2 pero en otro puesto)
+  const _official=computeOfficialStandings();
+  const _grpComplete={};
+  WORLD_CUP_MATCHES.filter(m=>m.stage==='Grupos'&&m.group).forEach(m=>{
+    if(_grpComplete[m.group]===undefined)_grpComplete[m.group]=true;
+    if(allMatches['m'+m.n]?.status!=='finished')_grpComplete[m.group]=false;
+  });
+  const _predictedFull=(un,grp)=>WORLD_CUP_MATCHES.filter(m=>m.stage==='Grupos'&&m.group===grp).every(m=>{const pr=allPredictions['m'+m.n]?.[un];return pr&&pr.home!=null&&pr.away!=null;});
+  Object.keys(totals).forEach(un=>{
+    const mine=computeGroupStandings(un,allPredictions);
+    Object.keys(_official).forEach(grp=>{
+      if(!_grpComplete[grp]||!_predictedFull(un,grp))return;
+      const o1=_official[grp]&&_official[grp][0]&&_official[grp][0].name;
+      const o2=_official[grp]&&_official[grp][1]&&_official[grp][1].name;
+      const p1=mine[grp]&&mine[grp][0]&&mine[grp][0].name;
+      const p2=mine[grp]&&mine[grp][1]&&mine[grp][1].name;
+      if(p1){if(p1===o1)totals[un]+=15;else if(p1===o2)totals[un]+=8;}
+      if(p2){if(p2===o2)totals[un]+=12;else if(p2===o1)totals[un]+=8;}
+    });
+  });
+  if(officialScorer&&officialScorer.name){
+    Object.keys(scorerPreds).forEach(un=>{
+      if(totals[un]===undefined)return;
+      const p=scorerPreds[un];
+      const nm=(p.name||'').toLowerCase().trim()===officialScorer.name.toLowerCase().trim();
+      const gm=Number(p.goals)===Number(officialScorer.goals);
+      if(nm&&gm)totals[un]+=20;else if(nm)totals[un]+=10;else if(gm)totals[un]+=25;
+    });
+  }
+  return totals;
+}
+async function persistTotals(){const totals=computeAllTotals();await fbSet('scores',totals);allScores=totals;return totals;}
+async function recalcAllScores(){
+  if(!currentUser?.isAdmin){alert('Solo el admin');return;}
+  if(!confirm('¿Recalcular TODOS los puntos desde cero, usando los resultados oficiales ya registrados?'))return;
+  await persistTotals();
+  alert('✅ Puntos recalculados desde los resultados oficiales.');
+  if(_currentTab==='leaderboard')renderLeaderboard();
+}
+
+/* ===== RESOLVER CLASIFICADOS 1°/2° EN ELIMINATORIAS ===== */
+function computeOfficialStandings(){
+  const gm={};WORLD_CUP_MATCHES.filter(m=>m.stage==='Grupos'&&m.group).forEach(m=>{(gm[m.group]=gm[m.group]||[]).push(m);});
+  const res={};
+  Object.keys(gm).forEach(grp=>{
+    const teams={};
+    gm[grp].forEach(m=>{[m.home,m.away].forEach(t=>{if(!teams[t])teams[t]={name:t,pts:0,gf:0,gc:0};});});
+    gm[grp].forEach(m=>{
+      const mm=allMatches['m'+m.n];if(!mm||mm.status!=='finished')return;
+      const h=mm.scoreHome,a=mm.scoreAway;const th=teams[m.home],ta=teams[m.away];
+      th.gf+=h;th.gc+=a;ta.gf+=a;ta.gc+=h;
+      if(h>a)th.pts+=3;else if(h<a)ta.pts+=3;else{th.pts++;ta.pts++;}
+    });
+    res[grp]=Object.values(teams).sort((x,y)=>y.pts-x.pts||((y.gf-y.gc)-(x.gf-x.gc))||(y.gf-x.gf)||x.name.localeCompare(y.name));
+  });
+  return res;
+}
+async function resolveKnockoutTeams(){
+  if(!currentUser?.isAdmin){alert('Solo el admin');return;}
+  const groupsDone={};
+  WORLD_CUP_MATCHES.filter(m=>m.stage==='Grupos'&&m.group).forEach(m=>{
+    if(groupsDone[m.group]===undefined)groupsDone[m.group]=true;
+    if(allMatches['m'+m.n]?.status!=='finished')groupsDone[m.group]=false;
+  });
+  const st=computeOfficialStandings();const updates={};let resolved=0;
+  Object.values(allMatches).forEach(m=>{
+    if(m.stage==='Grupos')return;
+    [['home',m.home],['away',m.away]].forEach(([side,val])=>{
+      const mt=/^([12])° Grupo ([A-L])$/.exec(val);if(!mt)return;
+      const pos=+mt[1],grp=mt[2];if(!groupsDone[grp])return;
+      const team=st[grp]&&st[grp][pos-1]&&st[grp][pos-1].name;
+      if(team){updates['matches/'+m.id+'/'+side]=team;resolved++;}
+    });
+  });
+  if(!resolved){alert('Todavía no hay cruces 1°/2° por resolver (faltan resultados de grupos completos).');return;}
+  if(!confirm(`Se asignarán los clasificados reales a ${resolved} casillas (1° y 2° de grupo) en eliminatorias.\n\nLos cruces con "3er lugar" o rondas posteriores (Ganador X) se registran a mano.\n\n¿Continuar?`))return;
+  await db.ref().update(updates);
+  alert(`✅ ${resolved} casillas resueltas con los clasificados reales.\nAhora el auto-update puede traer esos partidos por nombre. Verifica que los equipos sean correctos.`);
+}
+
+/* ===== HORARIOS / CIERRE X MIN ANTES DEL PARTIDO ===== */
+async function fetchKickoffTimes(){
+  if(!currentUser?.isAdmin){alert('Solo el admin');return;}
+  setAuStatus('running','Trayendo horarios…');
+  let data;try{data=await apiFetch(`/competitions/${FD_COMPETITION}/matches`);}catch(e){setAuStatus('error','Error API');alert('❌ No se pudo consultar la API:\n'+e.message);return;}
+  const fdList=(data&&data.matches)||[];const updates={};let n=0;
+  for(const m of Object.values(allMatches)){
+    if(isPlaceholder(m))continue;
+    const fx=findFdMatch(m,fdList);
+    if(fx&&fx.utcDate){updates['matches/'+m.id+'/kickoff']=fx.utcDate;n++;}
+  }
+  if(n)await db.ref().update(updates);
+  setAuStatus(n>0?'success':'idle',n>0?`${n} horarios`:'Sin horarios');
+  alert(`✅ ${n} horarios guardados desde la API.\nAhora puedes fijar en Config cuántos minutos antes de cada partido se cierran las apuestas.`);
+}
+async function saveLockMinutes(){
+  if(!currentUser?.isAdmin){alert('Solo el admin');return;}
+  const v=parseInt(document.getElementById('lock-minutes').value);
+  if(isNaN(v)||v<0){alert('Ingresa un número de minutos válido (0 = desactivado)');return;}
+  await fbUpdate('deadlines',{__lockMinutesBefore:v});deadlines.__lockMinutesBefore=v;
+  if(_currentTab==='all-matches')renderAllMatches();
+  alert(v>0?`✅ Las apuestas se cerrarán ${v} minutos antes de cada partido que tenga horario.`:'✅ Cierre automático por hora desactivado.');
+}
+
+function isMatchLocked(match){if(match.status==='finished')return true;const dl=deadlines[match.stage];if(dl&&new Date()>=new Date(dl))return true;const mins=Number(deadlines.__lockMinutesBefore||0);if(mins>0&&match.kickoff){const lockAt=new Date(new Date(match.kickoff).getTime()-mins*60000);if(new Date()>=lockAt)return true;}return false;}
 const COL_FLAG=`<svg class="col-flag" width="22" height="15" viewBox="0 0 22 15" xmlns="http://www.w3.org/2000/svg"><rect width="22" height="7.5" fill="#FCD116"/><rect y="7.5" width="22" height="3.75" fill="#003087"/><rect y="11.25" width="22" height="3.75" fill="#CE1126"/></svg>`;
 function colorBadge(color){if(color==='grey')return'<span class="color-badge-grey" title="Gris: +2pts"></span>';if(color==='yellow')return'<span class="color-badge-yellow" title="Amarillo: ×2pts"></span>';if(color==='colombia')return COL_FLAG;return'';}
 /* ===== PERFIL / CAMBIO DE NICK ===== */
