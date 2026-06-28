@@ -329,6 +329,13 @@
       <div class="card">
         <div class="card-title">👁️ Apuestas de Todos</div>
         <div id="bets-view-locked-msg" class="info-banner hidden">🔒 Las apuestas de esta fase estarán visibles una vez que cierre el plazo.</div>
+        <div class="sort-bar">
+          <label class="sort-label">Ordenar partidos:</label>
+          <select id="bv-sort" onchange="changeBvSort(this.value)">
+            <option value="antiguos">📅 Más antiguos primero</option>
+            <option value="recientes">🆕 Más recientes primero</option>
+          </select>
+        </div>
         <div class="filter-group" id="bv-filter-group"></div>
         <div id="bets-viewer-list"></div>
         <div id="bv-group-standings-wrap"></div>
@@ -879,6 +886,8 @@ function renderLeaderboard(){
 
 /* ===== VER APUESTAS ===== */
 let _bvStage='Grupos';
+let _bvSort='antiguos';
+function changeBvSort(v){_bvSort=v;renderBetsView();}
 function isStageDeadlinePassed(stage){const dl=deadlines[stage];return dl&&new Date()>=new Date(dl);}
 function renderBetsView(){
   const stages=[...new Set(WORLD_CUP_MATCHES.map(m=>m.stage))];
@@ -887,7 +896,7 @@ function renderBetsView(){
   const lm=document.getElementById('bets-view-locked-msg');
   if(!canSee){lm.classList.remove('hidden');document.getElementById('bets-viewer-list').innerHTML='';document.getElementById('bv-group-standings-wrap').innerHTML='';return;}
   lm.classList.add('hidden');
-  const matches=Object.values(allMatches).filter(m=>m.stage===_bvStage);
+  const matches=Object.values(allMatches).filter(m=>m.stage===_bvStage).sort((a,b)=>_bvSort==='recientes'?(b.date.localeCompare(a.date)||b.n-a.n):(a.date.localeCompare(b.date)||a.n-b.n));
   const users=Object.values(allUsers).filter(u=>!u.disabled&&u.username!=='juanj');
   document.getElementById('bets-viewer-list').innerHTML=matches.map(m=>{
     const preds=allPredictions[m.id]||{};const scoreStr=m.status==='finished'?`${m.scoreHome}-${m.scoreAway}`:'⏳';
@@ -912,7 +921,9 @@ function renderBvGroupStandings(users){
     const uRows=users.map(u=>{
       const st=computeGroupStandings(u.username,allPredictions);const gs=st[grp]||[];const first=gs[0],second=gs[1];
       if(!first||first.pj===0)return`<div class="bv-group-row"><span class="bv-group-nick">${u.username}</span><span style="color:var(--muted2);font-size:.75rem">Sin apuestas</span></div>`;
-      return`<div class="bv-group-row"><span class="bv-group-nick">${u.username}</span><span style="font-size:.78rem">🥇 ${first.name}<br><span style="color:var(--muted);font-size:.7rem">🥈 ${second?second.name:'?'}</span></span></div>`;
+      const qp=groupQualyPointsFor(u.username,grp);
+      const ptsBadge=qp?`<div style="color:${qp.partial?'var(--muted2)':'var(--gold)'};font-size:.7rem;margin-top:2px;font-weight:700">${qp.partial?'planilla incompleta':'+'+qp.pts+' pts'}</div>`:'';
+      return`<div class="bv-group-row"><span class="bv-group-nick">${u.username}</span><span style="font-size:.78rem">🥇 ${first.name}<br><span style="color:var(--muted);font-size:.7rem">🥈 ${second?second.name:'?'}</span>${ptsBadge}</span></div>`;
     }).join('');
     return`<div class="bv-group-card"><div class="bv-group-header">GRUPO ${grp}</div>${uRows}</div>`;
   }).join('');
@@ -1243,7 +1254,9 @@ function renderAdminMatches(){
   const el=document.getElementById('admin-matches-list');if(!el)return;
   el.innerHTML=Object.values(allMatches).filter(m=>m.stage===_adminStage).map(m=>{
     const cnt=Object.keys(allPredictions[m.id]||{}).length;
-    return`<div class="match-card color-${m.color}"><div class="match-header"><span style="font-size:.7rem">#${m.n} · ${m.date}</span><span class="status-badge status-${m.status}">${m.status==='finished'?'✓ FINAL':'⏱ Pendiente'}</span>${colorBadge(m.color)}</div><div class="match-teams"><div class="team-home team-name">${m.home}</div><div class="score-display">${m.scoreHome!==null?`${m.scoreHome}-${m.scoreAway}`:'-'}</div><div class="team-away team-name">${m.away}</div></div><small style="color:var(--muted);font-size:.7rem">${cnt} apuesta${cnt!==1?'s':''}</small><div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.5rem">${m.status!=='finished'?`<button class="btn btn-primary btn-sm" onclick="openResultModal('${m.id}')">+ Resultado</button>`:`<button class="btn btn-danger btn-sm" onclick="undoResult('${m.id}')">Revertir</button>`}<button class="btn btn-gold btn-sm" onclick="showPointsDetail('${m.id}')">Ver Puntos</button></div></div>`;
+    const editBtn=m.stage!=='Grupos'?`<button class="btn btn-blue btn-sm" onclick="editTeams('${m.id}')">✏️ Equipos</button>`:'';
+    const btnCols=m.stage!=='Grupos'?'1fr 1fr 1fr':'1fr 1fr';
+    return`<div class="match-card color-${m.color}"><div class="match-header"><span style="font-size:.7rem">#${m.n} · ${m.date}</span><span class="status-badge status-${m.status}">${m.status==='finished'?'✓ FINAL':'⏱ Pendiente'}</span>${colorBadge(m.color)}</div><div class="match-teams"><div class="team-home team-name">${m.home}</div><div class="score-display">${m.scoreHome!==null?`${m.scoreHome}-${m.scoreAway}`:'-'}</div><div class="team-away team-name">${m.away}</div></div><small style="color:var(--muted);font-size:.7rem">${cnt} apuesta${cnt!==1?'s':''}</small><div style="display:grid;grid-template-columns:${btnCols};gap:.5rem;margin-top:.5rem">${m.status!=='finished'?`<button class="btn btn-primary btn-sm" onclick="openResultModal('${m.id}')">+ Resultado</button>`:`<button class="btn btn-danger btn-sm" onclick="undoResult('${m.id}')">Revertir</button>`}<button class="btn btn-gold btn-sm" onclick="showPointsDetail('${m.id}')">Ver Puntos</button>${editBtn}</div></div>`;
   }).join('');
 }
 function filterAdminMatches(stage,el){_adminStage=stage;document.querySelectorAll('#admin-filter-group .filter-btn').forEach(b=>b.classList.remove('active'));if(el)el.classList.add('active');renderAdminMatches();}
@@ -1272,6 +1285,23 @@ function showPointsDetail(matchId){
 }
 
 /* ===== RECÁLCULO ROBUSTO DE PUNTOS (fuente de verdad) ===== */
+/* Puntos de clasificados de un participante en un grupo. null = grupo aún incompleto. */
+function groupQualyPointsFor(username,grp){
+  const ms=WORLD_CUP_MATCHES.filter(m=>m.stage==='Grupos'&&m.group===grp);
+  if(!ms.length)return null;
+  const complete=ms.every(m=>allMatches['m'+m.n]?.status==='finished');
+  if(!complete)return null;
+  const predFull=ms.every(m=>{const pr=allPredictions['m'+m.n]?.[username];return pr&&pr.home!=null&&pr.away!=null;});
+  if(!predFull)return {pts:0,partial:true};
+  const off=computeOfficialStandings()[grp]||[];
+  const o1=off[0]&&off[0].name,o2=off[1]&&off[1].name;
+  const mine=computeGroupStandings(username,allPredictions)[grp]||[];
+  const p1=mine[0]&&mine[0].name,p2=mine[1]&&mine[1].name;
+  let pts=0;
+  if(p1){if(p1===o1)pts+=15;else if(p1===o2)pts+=8;}
+  if(p2){if(p2===o2)pts+=12;else if(p2===o1)pts+=8;}
+  return {pts};
+}
 function computeAllTotals(){
   const totals={};
   Object.values(allUsers).forEach(u=>{if(u&&!u.disabled)totals[u.username]=0;});
@@ -1286,24 +1316,9 @@ function computeAllTotals(){
     });
   });
   // Puntos por clasificados de grupo: 15 (1° exacto), 12 (2° exacto), 8 (clasificó top-2 pero en otro puesto)
-  const _official=computeOfficialStandings();
-  const _grpComplete={};
-  WORLD_CUP_MATCHES.filter(m=>m.stage==='Grupos'&&m.group).forEach(m=>{
-    if(_grpComplete[m.group]===undefined)_grpComplete[m.group]=true;
-    if(allMatches['m'+m.n]?.status!=='finished')_grpComplete[m.group]=false;
-  });
-  const _predictedFull=(un,grp)=>WORLD_CUP_MATCHES.filter(m=>m.stage==='Grupos'&&m.group===grp).every(m=>{const pr=allPredictions['m'+m.n]?.[un];return pr&&pr.home!=null&&pr.away!=null;});
+  const _allGroups=[...new Set(WORLD_CUP_MATCHES.filter(m=>m.stage==='Grupos'&&m.group).map(m=>m.group))];
   Object.keys(totals).forEach(un=>{
-    const mine=computeGroupStandings(un,allPredictions);
-    Object.keys(_official).forEach(grp=>{
-      if(!_grpComplete[grp]||!_predictedFull(un,grp))return;
-      const o1=_official[grp]&&_official[grp][0]&&_official[grp][0].name;
-      const o2=_official[grp]&&_official[grp][1]&&_official[grp][1].name;
-      const p1=mine[grp]&&mine[grp][0]&&mine[grp][0].name;
-      const p2=mine[grp]&&mine[grp][1]&&mine[grp][1].name;
-      if(p1){if(p1===o1)totals[un]+=15;else if(p1===o2)totals[un]+=8;}
-      if(p2){if(p2===o2)totals[un]+=12;else if(p2===o1)totals[un]+=8;}
-    });
+    _allGroups.forEach(grp=>{const r=groupQualyPointsFor(un,grp);if(r)totals[un]+=r.pts;});
   });
   if(officialScorer&&officialScorer.name){
     Object.keys(scorerPreds).forEach(un=>{
@@ -1389,6 +1404,23 @@ async function saveLockMinutes(){
   alert(v>0?`✅ Las apuestas se cerrarán ${v} minutos antes de cada partido que tenga horario.`:'✅ Cierre automático por hora desactivado.');
 }
 
+/* Editar manualmente los equipos de un cruce (útil para 3er puesto y rondas posteriores) */
+async function editTeams(matchId){
+  if(!currentUser?.isAdmin){alert('Solo el admin');return;}
+  const m=allMatches[matchId];
+  const nh=prompt('Equipo LOCAL (cancela para no cambiar nada):',m.home);
+  if(nh===null)return;
+  const na=prompt('Equipo VISITANTE:',m.away);
+  if(na===null)return;
+  const updates={};
+  if(nh.trim()&&nh.trim()!==m.home)updates['matches/'+matchId+'/home']=nh.trim();
+  if(na.trim()&&na.trim()!==m.away)updates['matches/'+matchId+'/away']=na.trim();
+  if(!Object.keys(updates).length){alert('No hubo cambios.');return;}
+  await db.ref().update(updates);
+  if(nh.trim())m.home=nh.trim();if(na.trim())m.away=na.trim();
+  alert('✅ Equipos actualizados. Ahora ese partido puede emparejarse con la API por nombre.');
+  renderAdminMatches();
+}
 function isMatchLocked(match){if(match.status==='finished')return true;const dl=deadlines[match.stage];if(dl&&new Date()>=new Date(dl))return true;const mins=Number(deadlines.__lockMinutesBefore||0);if(mins>0&&match.kickoff){const lockAt=new Date(new Date(match.kickoff).getTime()-mins*60000);if(new Date()>=lockAt)return true;}return false;}
 const COL_FLAG=`<svg class="col-flag" width="22" height="15" viewBox="0 0 22 15" xmlns="http://www.w3.org/2000/svg"><rect width="22" height="7.5" fill="#FCD116"/><rect y="7.5" width="22" height="3.75" fill="#003087"/><rect y="11.25" width="22" height="3.75" fill="#CE1126"/></svg>`;
 function colorBadge(color){if(color==='grey')return'<span class="color-badge-grey" title="Gris: +2pts"></span>';if(color==='yellow')return'<span class="color-badge-yellow" title="Amarillo: ×2pts"></span>';if(color==='colombia')return COL_FLAG;return'';}
