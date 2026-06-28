@@ -287,7 +287,7 @@
       <div id="mybets-goleador" class="hidden">
         <div class="scorer-card">
           <div class="card-title">🥅 Mi Predicción Goleador</div>
-          <div class="info-banner">Predice el <strong>goleador del Mundial 2026</strong> y su número de goles.<br>⚠️ Se bloquea <strong>antes del primer partido de Dieciseisavos</strong>.<br><br><strong>Puntos:</strong> Nombre + goles exactos: <strong>20 pts</strong> · Solo nombre: <strong>10 pts</strong> · Solo goles: <strong>25 pts</strong></div>
+          <div class="info-banner">Predice el <strong>goleador del Mundial 2026</strong> y su número de goles.<br>⚠️ Se bloquea <strong>antes del primer partido de Dieciseisavos</strong>.<br><br><strong>Puntos:</strong> Nombre + goles exactos: <strong>20 pts</strong> · Solo nombre: <strong>10 pts</strong> · Solo goles: <strong>5 pts</strong></div>
           <div id="mybets-scorer-form">
             <div class="form-group"><label>Nombre del Goleador</label><input type="text" id="mybets-scorer-name" placeholder="Ej: Lionel Messi"></div>
             <div class="form-group"><label>Número de Goles</label><input type="number" id="mybets-scorer-goals" min="1" placeholder="Ej: 8"></div>
@@ -334,6 +334,10 @@
           <select id="bv-sort" onchange="changeBvSort(this.value)">
             <option value="antiguos">📅 Más antiguos primero</option>
             <option value="recientes">🆕 Más recientes primero</option>
+          </select>
+          <select id="bv-played" onchange="changeBvPlayed(this.value)">
+            <option value="all">Todos los partidos</option>
+            <option value="played">✅ Solo jugados (con marcador)</option>
           </select>
         </div>
         <div class="filter-group" id="bv-filter-group"></div>
@@ -405,7 +409,7 @@
         <table class="rules-table"><thead><tr><th>Concepto</th><th style="text-align:right">Pts</th></tr></thead><tbody>
           <tr><td>Nombre exacto + número de goles exacto</td><td class="pts" style="text-align:right">20</td></tr>
           <tr><td>Nombre exacto sin número de goles exacto</td><td class="pts" style="text-align:right">10</td></tr>
-          <tr><td>Número exacto de goles (sin nombre)</td><td class="pts" style="text-align:right">25</td></tr>
+          <tr><td>Número exacto de goles (sin nombre)</td><td class="pts" style="text-align:right">5</td></tr>
         </tbody></table>
       </div>
       <div class="rules-block">
@@ -888,7 +892,9 @@ function renderLeaderboard(){
 /* ===== VER APUESTAS ===== */
 let _bvStage='Grupos';
 let _bvSort='antiguos';
+let _bvPlayed='all';
 function changeBvSort(v){_bvSort=v;renderBetsView();}
+function changeBvPlayed(v){_bvPlayed=v;renderBetsView();}
 function isStageDeadlinePassed(stage){const dl=deadlines[stage];return dl&&new Date()>=new Date(dl);}
 function renderBetsView(){
   const stages=[...new Set(WORLD_CUP_MATCHES.map(m=>m.stage))];
@@ -897,7 +903,7 @@ function renderBetsView(){
   const lm=document.getElementById('bets-view-locked-msg');
   if(!canSee){lm.classList.remove('hidden');document.getElementById('bets-viewer-list').innerHTML='';document.getElementById('bv-group-standings-wrap').innerHTML='';document.getElementById('bv-group-accum-wrap').innerHTML='';return;}
   lm.classList.add('hidden');
-  const matches=Object.values(allMatches).filter(m=>m.stage===_bvStage).sort((a,b)=>_bvSort==='recientes'?(b.date.localeCompare(a.date)||b.n-a.n):(a.date.localeCompare(b.date)||a.n-b.n));
+  const matches=Object.values(allMatches).filter(m=>m.stage===_bvStage).filter(m=>_bvPlayed==='played'?m.status==='finished':true).sort((a,b)=>_bvSort==='recientes'?(b.date.localeCompare(a.date)||b.n-a.n):(a.date.localeCompare(b.date)||a.n-b.n));
   const users=Object.values(allUsers).filter(u=>!u.disabled&&u.username!=='juanj');
   document.getElementById('bets-viewer-list').innerHTML=matches.map(m=>{
     const preds=allPredictions[m.id]||{};const scoreStr=m.status==='finished'?`${m.scoreHome}-${m.scoreAway}`:'⏳';
@@ -1044,6 +1050,7 @@ async function saveScorer(){
   if(!name){showErr(err,'Ingresa el nombre del goleador');return;}if(isNaN(goals)||goals<1){showErr(err,'Número de goles inválido');return;}
   if(isR16Started()){showErr(err,'El plazo ha cerrado');return;}
   await fbSet(`scorerPreds/${currentUser.username}`,{name,goals});scorerPreds[currentUser.username]={name,goals};renderScorer();
+  alert(`✅ Goleador guardado: ${name} (${goals} goles).`);
 }
 async function registerOfficialScorer(){
   const name=document.getElementById('official-scorer-name').value.trim();const goals=parseInt(document.getElementById('official-scorer-goals').value);
@@ -1373,7 +1380,7 @@ function computeAllTotals(){
       const p=scorerPreds[un];
       const nm=(p.name||'').toLowerCase().trim()===officialScorer.name.toLowerCase().trim();
       const gm=Number(p.goals)===Number(officialScorer.goals);
-      if(nm&&gm)totals[un]+=20;else if(nm)totals[un]+=10;else if(gm)totals[un]+=25;
+      if(nm&&gm)totals[un]+=20;else if(nm)totals[un]+=10;else if(gm)totals[un]+=5;
     });
   }
   return totals;
