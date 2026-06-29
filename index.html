@@ -344,6 +344,7 @@
         <div id="bets-viewer-list"></div>
         <div id="bv-group-standings-wrap"></div>
         <div id="bv-group-accum-wrap"></div>
+        <div id="bv-scorer-wrap"></div>
       </div>
     </div>
 
@@ -580,7 +581,7 @@ firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
 const STAGE_POINTS={'Grupos':{exact:5,correct:3},'Dieciseisavos':{exact:10,correct:7},'Octavos':{exact:10,correct:7},'Cuartos':{exact:15,correct:10},'Semifinales':{exact:20,correct:15},'Tercer Puesto':{exact:25,correct:15},'Final':{exact:40,correct:20}};
-const CATEGORIES=['Grupos','Dieciseisavos','Octavos','Cuartos','Semifinales','Tercer Puesto','Final'];
+const CATEGORIES=['Grupos','Dieciseisavos','Octavos','Cuartos','Semifinales','Tercer Puesto','Final','Goleador'];
 const QUESTIONS={mascota:'¿Cómo se llamaba tu primera mascota?',ciudad:'¿En qué ciudad naciste?',madre:'¿Cuál es el primer apellido de tu madre?',colegio:'¿Cómo se llamaba tu colegio primario?',equipo:'¿Cuál es tu equipo de fútbol favorito?',anio_mama:'¿En qué año nació tu mamá?',numero:'¿Cuál es tu número favorito?',pelicula:'¿Cuál es tu película favorita?',apodo:'¿Cuál es tu apodo de la infancia?'};
 
 /* ================================================================
@@ -928,6 +929,7 @@ function renderBetsView(){
     document.getElementById('bv-group-accum-wrap').innerHTML='';
     renderBvKnockoutAdvancers(users,matches);
   }
+  renderBvScorer(users);
 }
 function renderBvKnockoutAdvancers(users,matches){
   const wrap=document.getElementById('bv-group-standings-wrap');if(!wrap)return;
@@ -946,6 +948,21 @@ function renderBvKnockoutAdvancers(users,matches){
     return`<div class="bv-group-card"><div class="bv-group-header">${m.home} vs ${m.away}</div>${rows}</div>`;
   }).join('');
   wrap.innerHTML=`<div class="bv-group-section"><div class="bv-group-section-title">▶ Quién avanza según cada participante</div><div class="bv-group-grid">${cards}</div></div>`;
+}
+function renderBvScorer(users){
+  const wrap=document.getElementById('bv-scorer-wrap');if(!wrap)return;
+  const isAdmin=!!currentUser?.isAdmin;const locked=isR16Started();
+  if(!locked&&!isAdmin){wrap.innerHTML=`<div class="bv-group-section"><div class="bv-group-section-title">🥅 Goleador del Mundial</div><div class="info-banner">🔒 Las apuestas del goleador se revelan cuando cierre su plazo.</div></div>`;return;}
+  const os=officialScorer&&officialScorer.name?officialScorer:null;
+  const rows=users.map(u=>{
+    const p=scorerPreds[u.username];
+    if(!p)return`<div class="bv-group-row"><span class="bv-group-nick">${u.username}</span><span style="color:var(--muted2);font-size:.75rem">— sin apuesta —</span></div>`;
+    let pts='';
+    if(os){const nm=(p.name||'').toLowerCase().trim()===os.name.toLowerCase().trim();const gm=Number(p.goals)===Number(os.goals);const v=nm&&gm?20:nm?10:gm?5:0;pts=` <span style="color:${v?'var(--gold)':'var(--muted2)'};font-weight:800">${v} pts</span>`;}
+    return`<div class="bv-group-row"><span class="bv-group-nick">${u.username}</span><span style="font-size:.78rem">${p.name} · ${p.goals}g${pts}</span></div>`;
+  }).join('');
+  const head=os?`<div class="info-banner">Goleador oficial: <strong>${os.name}</strong> (${os.goals} goles)</div>`:'';
+  wrap.innerHTML=`<div class="bv-group-section"><div class="bv-group-section-title">🥅 Goleador según cada participante</div>${head}<div class="bv-group-grid"><div class="bv-group-card"><div class="bv-group-header">Predicciones de goleador</div>${rows}</div></div></div>`;
 }
 function renderBvGroupAccum(users){
   const wrap=document.getElementById('bv-group-accum-wrap');if(!wrap)return;
@@ -1063,7 +1080,7 @@ async function savePred(matchId){
 }
 
 /* ===== GOLEADOR ===== */
-function isR16Started(){const r16=Object.values(allMatches).filter(m=>m.stage==='Dieciseisavos');if(r16.some(m=>m.status==='finished'))return true;if(deadlines['Dieciseisavos']&&new Date()>=new Date(deadlines['Dieciseisavos']))return true;return false;}
+function isR16Started(){if(deadlines['Goleador'])return new Date()>=new Date(deadlines['Goleador']);const r16=Object.values(allMatches).filter(m=>m.stage==='Dieciseisavos');if(r16.some(m=>m.status==='finished'))return true;if(deadlines['Dieciseisavos']&&new Date()>=new Date(deadlines['Dieciseisavos']))return true;return false;}
 function renderScorer(){
   const myPred=scorerPreds[currentUser.username];const locked=isR16Started();
   const form=document.getElementById('mybets-scorer-form');const display=document.getElementById('mybets-scorer-display');if(!form)return;
