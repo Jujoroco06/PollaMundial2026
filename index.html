@@ -899,14 +899,17 @@ function isStageDeadlinePassed(stage){const dl=deadlines[stage];return dl&&new D
 function renderBetsView(){
   const stages=[...new Set(WORLD_CUP_MATCHES.map(m=>m.stage))];
   document.getElementById('bv-filter-group').innerHTML=stages.map(s=>`<button class="filter-btn ${s===_bvStage?'active':''}" onclick="filterBetsView('${s}',this)">${s}</button>`).join('');
-  const canSee=isStageDeadlinePassed(_bvStage)||currentUser?.isAdmin;
+  const isAdmin=!!currentUser?.isAdmin;
   const lm=document.getElementById('bets-view-locked-msg');
-  if(!canSee){lm.classList.remove('hidden');document.getElementById('bets-viewer-list').innerHTML='';document.getElementById('bv-group-standings-wrap').innerHTML='';document.getElementById('bv-group-accum-wrap').innerHTML='';return;}
-  lm.classList.add('hidden');
   const matches=Object.values(allMatches).filter(m=>m.stage===_bvStage).filter(m=>_bvPlayed==='played'?m.status==='finished':true).sort((a,b)=>_bvSort==='recientes'?(b.date.localeCompare(a.date)||b.n-a.n):(a.date.localeCompare(b.date)||a.n-b.n));
   const users=Object.values(allUsers).filter(u=>!u.disabled&&u.username!=='juanj');
+  const anyRevealed=matches.some(m=>isAdmin||isMatchLocked(m));
+  if(matches.length&&!anyRevealed){lm.classList.remove('hidden');lm.innerHTML='🔒 Las apuestas de cada partido se revelan cuando ese partido cierra (el cierre ahora es individual).';}else{lm.classList.add('hidden');}
   document.getElementById('bets-viewer-list').innerHTML=matches.map(m=>{
-    const preds=allPredictions[m.id]||{};const scoreStr=m.status==='finished'?`${m.scoreHome}-${m.scoreAway}`:'⏳';
+    const scoreStr=m.status==='finished'?`${m.scoreHome}-${m.scoreAway}`:'⏳';
+    const head=`<div class="bv-header"><span class="bv-title">${m.home} vs ${m.away} <span style="color:var(--muted);font-weight:400;font-size:.72rem">· ${m.date}</span>${colorBadge(m.color)}</span><span class="bv-score">${scoreStr}</span></div>`;
+    if(!(isAdmin||isMatchLocked(m)))return`<div class="bv-match">${head}<div class="bv-row" style="justify-content:center;color:var(--muted2);font-size:.8rem;padding:.75rem">🔒 Apuestas ocultas hasta el cierre de este partido</div></div>`;
+    const preds=allPredictions[m.id]||{};
     const rows=users.map(u=>{
       const pred=preds[u.username];
       if(!pred)return`<div class="bv-row"><span class="bv-nick">${u.username}</span><span class="bv-pred" style="color:var(--muted2)">— sin apuesta —</span><span class="bv-pts" style="color:var(--muted2)">—</span></div>`;
@@ -915,9 +918,34 @@ function renderBetsView(){
       const advTxt=pred.advance?` <span style="color:var(--gold);font-size:.7rem">▶ ${pred.advance==='home'?m.home:m.away}</span>`:'';
       return`<div class="bv-row"><span class="bv-nick">${u.username}</span><span class="bv-pred">${pred.home} - ${pred.away}${advTxt}</span>${ptsHtml}</div>`;
     }).join('');
-    return`<div class="bv-match"><div class="bv-header"><span class="bv-title">${m.home} vs ${m.away} <span style="color:var(--muted);font-weight:400;font-size:.72rem">· ${m.date}</span>${colorBadge(m.color)}</span><span class="bv-score">${scoreStr}</span></div>${rows}</div>`;
+    return`<div class="bv-match">${head}${rows}</div>`;
   }).join('')||'<p style="color:var(--muted);padding:2rem;text-align:center">Sin partidos en esta fase.</p>';
-  if(_bvStage==='Grupos'){renderBvGroupStandings(users);renderBvGroupAccum(users);}else{document.getElementById('bv-group-standings-wrap').innerHTML='';document.getElementById('bv-group-accum-wrap').innerHTML='';}
+  if(_bvStage==='Grupos'){
+    const gRev=isAdmin||isStageDeadlinePassed('Grupos')||Object.values(allMatches).filter(x=>x.stage==='Grupos').every(x=>isMatchLocked(x));
+    if(gRev)renderBvGroupStandings(users);else document.getElementById('bv-group-standings-wrap').innerHTML='';
+    renderBvGroupAccum(users);
+  }else{
+    document.getElementById('bv-group-accum-wrap').innerHTML='';
+    renderBvKnockoutAdvancers(users,matches);
+  }
+}
+function renderBvKnockoutAdvancers(users,matches){
+  const wrap=document.getElementById('bv-group-standings-wrap');if(!wrap)return;
+  const isAdmin=!!currentUser?.isAdmin;
+  const shown=matches.filter(m=>isAdmin||isMatchLocked(m));
+  if(!shown.length){wrap.innerHTML='';return;}
+  const cards=shown.map(m=>{
+    const preds=allPredictions[m.id]||{};const actual=actualAdvanceSide(m);
+    const rows=users.map(u=>{
+      const p=preds[u.username];
+      if(!p)return`<div class="bv-group-row"><span class="bv-group-nick">${u.username}</span><span style="color:var(--muted2);font-size:.75rem">— sin apuesta —</span></div>`;
+      const side=predAdvanceSide(p);const team=side==='home'?m.home:side==='away'?m.away:'?';
+      let st='font-size:.78rem;font-weight:700';if(actual)st+=side===actual?';color:var(--green)':';color:var(--red)';
+      return`<div class="bv-group-row"><span class="bv-group-nick">${u.username}</span><span style="${st}">▶ ${team}</span></div>`;
+    }).join('');
+    return`<div class="bv-group-card"><div class="bv-group-header">${m.home} vs ${m.away}</div>${rows}</div>`;
+  }).join('');
+  wrap.innerHTML=`<div class="bv-group-section"><div class="bv-group-section-title">▶ Quién avanza según cada participante</div><div class="bv-group-grid">${cards}</div></div>`;
 }
 function renderBvGroupAccum(users){
   const wrap=document.getElementById('bv-group-accum-wrap');if(!wrap)return;
