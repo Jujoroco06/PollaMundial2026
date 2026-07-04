@@ -672,23 +672,23 @@ const WORLD_CUP_MATCHES=[
   {n:78,home:"2° Grupo E",away:"2° Grupo I",date:"2026-06-30",stage:"Dieciseisavos",group:"",color:"normal"},
   {n:79,home:"1° Grupo A",away:"3° C/E/F/H/I",date:"2026-07-01",stage:"Dieciseisavos",group:"",color:"normal"},
   {n:80,home:"1° Grupo L",away:"3° E/H/I/J/K",date:"2026-07-01",stage:"Dieciseisavos",group:"",color:"normal"},
-  {n:81,home:"1° Grupo G",away:"3° A/E/H/I/J",date:"2026-07-01",stage:"Dieciseisavos",group:"",color:"normal"},
-  {n:82,home:"2° Grupo K",away:"2° Grupo L",date:"2026-07-02",stage:"Dieciseisavos",group:"",color:"normal"},
-  {n:83,home:"2° Grupo H",away:"2° Grupo J",date:"2026-07-02",stage:"Dieciseisavos",group:"",color:"normal"},
-  {n:84,home:"1° Grupo B",away:"3° E/F/G/I/J",date:"2026-07-02",stage:"Dieciseisavos",group:"",color:"normal"},
-  {n:85,home:"1° Grupo K",away:"3° G/H/I/J/L",date:"2026-07-03",stage:"Dieciseisavos",group:"",color:"normal"},
-  {n:86,home:"1° Grupo H",away:"2° Grupo B",date:"2026-07-03",stage:"Dieciseisavos",group:"",color:"normal"},
-  {n:87,home:"1° Grupo D",away:"3° B/E/F/I/J",date:"2026-07-03",stage:"Dieciseisavos",group:"",color:"normal"},
+  {n:81,home:"1° Grupo D",away:"3° B/E/F/I/J",date:"2026-07-01",stage:"Dieciseisavos",group:"",color:"normal"},
+  {n:82,home:"1° Grupo G",away:"3° A/E/H/I/J",date:"2026-07-02",stage:"Dieciseisavos",group:"",color:"normal"},
+  {n:83,home:"2° Grupo K",away:"2° Grupo L",date:"2026-07-02",stage:"Dieciseisavos",group:"",color:"normal"},
+  {n:84,home:"1° Grupo H",away:"2° Grupo J",date:"2026-07-02",stage:"Dieciseisavos",group:"",color:"normal"},
+  {n:85,home:"1° Grupo B",away:"3° E/F/G/I/J",date:"2026-07-03",stage:"Dieciseisavos",group:"",color:"normal"},
+  {n:86,home:"1° Grupo J",away:"2° Grupo H",date:"2026-07-03",stage:"Dieciseisavos",group:"",color:"normal"},
+  {n:87,home:"1° Grupo K",away:"3° D/E/I/J/L",date:"2026-07-03",stage:"Dieciseisavos",group:"",color:"normal"},
   {n:88,home:"2° Grupo D",away:"2° Grupo G",date:"2026-07-03",stage:"Dieciseisavos",group:"",color:"normal"},
   // Octavos
-  {n:89,home:"Ganador 74",away:"Ganador 78",date:"2026-07-04",stage:"Octavos",group:"",color:"normal"},
+  {n:89,home:"Ganador 74",away:"Ganador 77",date:"2026-07-04",stage:"Octavos",group:"",color:"normal"},
   {n:90,home:"Ganador 73",away:"Ganador 75",date:"2026-07-04",stage:"Octavos",group:"",color:"normal"},
-  {n:91,home:"Ganador 76",away:"Ganador 79",date:"2026-07-05",stage:"Octavos",group:"",color:"normal"},
-  {n:92,home:"Ganador 80",away:"Ganador 87",date:"2026-07-05",stage:"Octavos",group:"",color:"normal"},
+  {n:91,home:"Ganador 76",away:"Ganador 78",date:"2026-07-05",stage:"Octavos",group:"",color:"normal"},
+  {n:92,home:"Ganador 79",away:"Ganador 80",date:"2026-07-05",stage:"Octavos",group:"",color:"normal"},
   {n:93,home:"Ganador 83",away:"Ganador 84",date:"2026-07-06",stage:"Octavos",group:"",color:"normal"},
   {n:94,home:"Ganador 81",away:"Ganador 82",date:"2026-07-06",stage:"Octavos",group:"",color:"normal"},
   {n:95,home:"Ganador 86",away:"Ganador 88",date:"2026-07-07",stage:"Octavos",group:"",color:"normal"},
-  {n:96,home:"Ganador 85",away:"Ganador 77",date:"2026-07-07",stage:"Octavos",group:"",color:"normal"},
+  {n:96,home:"Ganador 85",away:"Ganador 87",date:"2026-07-07",stage:"Octavos",group:"",color:"normal"},
   // Cuartos
   {n:97,home:"Gan. Oct X1",away:"Gan. Oct X2",date:"2026-07-09",stage:"Cuartos",group:"",color:"normal"},
   {n:98,home:"Gan. Oct X5",away:"Gan. Oct X6",date:"2026-07-10",stage:"Cuartos",group:"",color:"normal"},
@@ -1480,22 +1480,32 @@ async function resolveKnockoutTeams(){
     const ranked=Object.keys(st).map(grp=>{const t=st[grp]&&st[grp][2];return t?{grp,name:t.name,pts:t.pts,gd:t.gf-t.gc,gf:t.gf}:null;}).filter(Boolean)
       .sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf||a.grp.localeCompare(b.grp));
     const top8=ranked.slice(0,8);
-    const slots=[];
-    WORLD_CUP_MATCHES.forEach(m=>{const mt=/^3° ([A-L/]+)$/.exec(m.away);if(mt)slots.push({id:'m'+m.n,side:'away',groups:mt[1].split('/')});});
-    // Emparejamiento bipartito (Kuhn): cada tercero -> una casilla cuyo grupo sea elegible
-    const slotTeam={};
-    const tryAssign=(ti,seen)=>{
-      for(let si=0;si<slots.length;si++){
-        if(seen[si])continue;
-        if(slots[si].groups.includes(top8[ti].grp)){
-          seen[si]=true;
-          if(slotTeam[si]===undefined||tryAssign(slotTeam[si],seen)){slotTeam[si]=ti;return true;}
-        }
-      }
-      return false;
+    const byGrp={};top8.forEach(t=>byGrp[t.grp]=t.name);
+    const combo=top8.map(t=>t.grp).sort().join('');
+    // Tabla oficial FIFA (Annex C) — casilla(partido) -> grupo del 3° que la ocupa
+    const ANNEX={
+      'BDEFIJKL':{m79:'E',m85:'J',m81:'B',m74:'D',m82:'I',m77:'F',m87:'L',m80:'K'}
     };
-    for(let ti=0;ti<top8.length;ti++)tryAssign(ti,{});
-    Object.keys(slotTeam).forEach(si=>{const slot=slots[si];updates['matches/'+slot.id+'/'+slot.side]=top8[slotTeam[si]].name;resolved++;thirds++;});
+    if(ANNEX[combo]){
+      Object.keys(ANNEX[combo]).forEach(mid=>{const g=ANNEX[combo][mid];if(byGrp[g]){updates['matches/'+mid+'/away']=byGrp[g];resolved++;thirds++;}});
+    }else{
+      // Respaldo: emparejamiento válido por grupos elegibles (puede diferir de FIFA; la verificación con API lo avisa)
+      const slots=[];
+      WORLD_CUP_MATCHES.forEach(m=>{const mt=/^3° ([A-L/]+)$/.exec(m.away);if(mt)slots.push({id:'m'+m.n,side:'away',groups:mt[1].split('/')});});
+      const slotTeam={};
+      const tryAssign=(ti,seen)=>{
+        for(let si=0;si<slots.length;si++){
+          if(seen[si])continue;
+          if(slots[si].groups.includes(top8[ti].grp)){
+            seen[si]=true;
+            if(slotTeam[si]===undefined||tryAssign(slotTeam[si],seen)){slotTeam[si]=ti;return true;}
+          }
+        }
+        return false;
+      };
+      for(let ti=0;ti<top8.length;ti++)tryAssign(ti,{});
+      Object.keys(slotTeam).forEach(si=>{const slot=slots[si];updates['matches/'+slot.id+'/'+slot.side]=top8[slotTeam[si]].name;resolved++;thirds++;});
+    }
   }
   // ===== PROPAGAR LLAVE segun resultados: Octavos -> Final =====
   const overlay={};
