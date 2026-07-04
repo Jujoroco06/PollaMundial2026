@@ -443,10 +443,10 @@
       <div id="admin-panel-resultados">
         <div class="admin-section">
           <div class="card-title">📝 Registrar Resultados</div>
-          <div class="info-banner">Las eliminatorias se registran <strong>manualmente</strong> aquí. Cuando terminen los grupos, usa <strong>"Resolver clasificados"</strong> para que los cruces 1°/2° muestren los equipos reales y el auto-update pueda traerlos. Si los puntos no cuadran, usa <strong>"Recalcular puntos"</strong>.</div>
+          <div class="info-banner"><strong>"Resolver clasificados y llaves"</strong> asigna 1°/2°/3° de grupo y, según los resultados ya registrados, llena los cruces de Octavos, Cuartos, Semis y Final (ganadores/perdedores). Además verifica contra el fixture programado en la API y avisa si hay conflictos para que elijas con <strong>✏️ Equipos</strong>. Si los puntos no cuadran, usa <strong>"Recalcular puntos"</strong>.</div>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
             <button class="btn btn-gold btn-sm" onclick="recalcAllScores()">♻️ Recalcular puntos</button>
-            <button class="btn btn-blue btn-sm" onclick="resolveKnockoutTeams()">🔗 Resolver clasificados (1°/2°)</button>
+            <button class="btn btn-blue btn-sm" onclick="resolveKnockoutTeams()">🔗 Resolver clasificados y llaves</button>
           </div>
           <div class="filter-group" id="admin-filter-group"></div>
           <div class="matches-grid" id="admin-matches-list"></div>
@@ -1463,7 +1463,7 @@ async function resolveKnockoutTeams(){
     if(groupsDone[m.group]===undefined)groupsDone[m.group]=true;
     if(allMatches['m'+m.n]?.status!=='finished')groupsDone[m.group]=false;
   });
-  const st=computeOfficialStandings();const updates={};let resolved=0,thirds=0;
+  const st=computeOfficialStandings();const updates={};let resolved=0,thirds=0,propagated=0;
   // 1° y 2° de grupo (casilla fija)
   Object.values(allMatches).forEach(m=>{
     if(m.stage==='Grupos')return;
@@ -1497,11 +1497,46 @@ async function resolveKnockoutTeams(){
     for(let ti=0;ti<top8.length;ti++)tryAssign(ti,{});
     Object.keys(slotTeam).forEach(si=>{const slot=slots[si];updates['matches/'+slot.id+'/'+slot.side]=top8[slotTeam[si]].name;resolved++;thirds++;});
   }
-  if(!resolved){alert('Todavía no hay clasificados por resolver (faltan resultados de grupos completos).');return;}
-  const msg=`Se asignarán los clasificados reales a ${resolved} casillas`+(allDone?` (1°, 2° y los 8 mejores 3°).`:` (1° y 2°). Los 8 mejores 3° se asignan cuando TODOS los grupos estén completos.`)+`\n\nNota: la casilla exacta del 3° puede diferir de la tabla oficial de FIFA; verifica y ajusta con ✏️ Equipos si hace falta.\n\n¿Continuar?`;
+  // ===== PROPAGAR LLAVE segun resultados: Octavos -> Final =====
+  const overlay={};
+  Object.keys(updates).forEach(k=>{const mt=/^matches\/(m\d+)\/(home|away)$/.exec(k);if(mt){(overlay[mt[1]]=overlay[mt[1]]||{})[mt[2]]=updates[k];}});
+  const nmOf=(id,side)=>(overlay[id]&&overlay[id][side]!=null)?overlay[id][side]:(allMatches[id]&&allMatches[id][side]);
+  const win=(id)=>{const m=allMatches[id];if(!m||m.status!=='finished')return null;const s=actualAdvanceSide(m);return s?nmOf(id,s):null;};
+  const los=(id)=>{const m=allMatches[id];if(!m||m.status!=='finished')return null;const s=actualAdvanceSide(m);return s?nmOf(id,s==='home'?'away':'home'):null;};
+  const tok=(val)=>{let x;if((x=/^Ganador (\d+)$/.exec(val)))return win('m'+x[1]);if((x=/^Perdedor (\d+)$/.exec(val)))return los('m'+x[1]);if((x=/^Gan\. Oct X(\d)$/.exec(val)))return win('m'+(88+ +x[1]));if((x=/^Gan\. Cto Y(\d)$/.exec(val)))return win('m'+(96+ +x[1]));if((x=/^Ganador SF(\d)$/.exec(val)))return win('m'+(100+ +x[1]));if((x=/^Perdedor SF(\d)$/.exec(val)))return los('m'+(100+ +x[1]));return null;};
+  ['Octavos','Cuartos','Semifinales','Tercer Puesto','Final'].forEach(stage=>{
+    WORLD_CUP_MATCHES.filter(m=>m.stage===stage).forEach(m=>{
+      [['home',m.home],['away',m.away]].forEach(([side,token])=>{
+        const cur=nmOf('m'+m.n,side);
+        if(!cur||!/Ganador|Perdedor|Gan\./.test(cur))return;
+        const team=tok(token);
+        if(team&&team!==cur){updates['matches/m'+m.n+'/'+side]=team;(overlay['m'+m.n]=overlay['m'+m.n]||{})[side]=team;resolved++;propagated++;}
+      });
+    });
+  });
+  // ===== VERIFICACION CON LA API (partidos programados) =====
+  let apiNote='';
+  try{
+    const data=await apiFetch(`/competitions/${FD_COMPETITION}/matches`);
+    const fd=(data&&data.matches)||[];
+    const koFd=fd.filter(x=>x.stage&&x.stage!=='GROUP_STAGE'&&x.homeTeam&&x.homeTeam.name&&x.awayTeam&&x.awayTeam.name);
+    if(koFd.length){
+      const conflicts=[];
+      Object.values(allMatches).forEach(m=>{
+        if(m.stage==='Grupos')return;
+        const H=nmOf(m.id,'home'),A=nmOf(m.id,'away');
+        if(!H||!A||/Ganador|Perdedor|Gan\.|Grupo|°|\//.test(H+' '+A))return;
+        const ok=koFd.some(x=>(teamMatch(H,x.homeTeam.name)&&teamMatch(A,x.awayTeam.name))||(teamMatch(H,x.awayTeam.name)&&teamMatch(A,x.homeTeam.name)));
+        if(!ok)conflicts.push(`#${m.n}: ${H} vs ${A}`);
+      });
+      apiNote=conflicts.length?('\n\n⚠️ CONFLICTO con la API (estos cruces no coinciden con el fixture programado; elige y ajusta con ✏️ Equipos):\n'+conflicts.join('\n')):'\n\n✅ Los cruces coinciden con los partidos programados en la API.';
+    }else apiNote='\n\n(La API aún no tiene partidos de eliminatoria para verificar.)';
+  }catch(e){apiNote='\n\n(No se pudo verificar con la API: '+e.message+')';}
+  if(!resolved){alert('Todavía no hay nada por resolver (faltan resultados).'+apiNote);return;}
+  const msg=`Se asignarán ${resolved} casillas: clasificados de grupo`+(thirds?` (incluye ${thirds} terceros)`:``)+(propagated?` y ${propagated} cruce(s) de rondas siguientes según resultados`:``)+`.`+apiNote+`\n\n¿Continuar?`;
   if(!confirm(msg))return;
   await db.ref().update(updates);
-  alert(`✅ ${resolved} casillas resueltas`+(thirds?` (incluye ${thirds} terceros).`:`.`)+`\nRevisa los cruces de 3° y ajusta con ✏️ Equipos si alguno no coincide con el cuadro oficial.`);
+  alert(`✅ ${resolved} casillas actualizadas`+(propagated?` (${propagated} por resultados de rondas previas)`:``)+(thirds?`, incluye ${thirds} terceros`:``)+`.\nRevisa cualquier conflicto con la API usando ✏️ Equipos.`);
 }
 
 /* ===== HORARIOS / CIERRE X MIN ANTES DEL PARTIDO ===== */
