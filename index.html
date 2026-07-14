@@ -1608,7 +1608,27 @@ async function editTeams(matchId){
   alert('✅ Equipos actualizados. Ahora ese partido puede emparejarse con la API por nombre.');
   renderAdminMatches();
 }
-function isMatchLocked(match){if(match.status==='finished')return true;const dl=deadlines[match.stage];if(dl&&new Date()>=new Date(dl))return true;const mins=Number(deadlines.__lockMinutesBefore||0);if(mins>0&&match.kickoff){const lockAt=new Date(new Date(match.kickoff).getTime()-mins*60000);if(new Date()>=lockAt)return true;}return false;}
+/* Hora de inicio del partido: exacta si tenemos kickoff de la API; si no, el
+   inicio del día del partido (UTC) como RED DE SEGURIDAD anti-trampa, para que
+   ningún partido siga abierto una vez que ya empezó, aunque el admin no haya
+   traído horarios ni puesto fecha límite de fase. */
+function matchStartTime(match){
+  if(match.kickoff)return new Date(match.kickoff);
+  if(match.date)return new Date(match.date+'T00:00:00Z');
+  return null;
+}
+function isMatchLocked(match){
+  if(match.status==='finished')return true;
+  const dl=deadlines[match.stage];
+  if(dl&&new Date()>=new Date(dl))return true;
+  const start=matchStartTime(match);
+  if(start){
+    const mins=Number(deadlines.__lockMinutesBefore||0);
+    const lockAt=new Date(start.getTime()-mins*60000);
+    if(new Date()>=lockAt)return true;
+  }
+  return false;
+}
 const COL_FLAG=`<svg class="col-flag" width="22" height="15" viewBox="0 0 22 15" xmlns="http://www.w3.org/2000/svg"><rect width="22" height="7.5" fill="#FCD116"/><rect y="7.5" width="22" height="3.75" fill="#003087"/><rect y="11.25" width="22" height="3.75" fill="#CE1126"/></svg>`;
 function colorBadge(color){if(color==='grey')return'<span class="color-badge-grey" title="Gris: +2pts"></span>';if(color==='yellow')return'<span class="color-badge-yellow" title="Amarillo: ×2pts"></span>';if(color==='colombia')return COL_FLAG;return'';}
 /* ===== PERFIL / CAMBIO DE NICK ===== */
