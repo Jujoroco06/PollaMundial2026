@@ -155,6 +155,10 @@
     .modal-header h2{font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
     .close-btn{background:none;border:none;color:var(--muted);font-size:1.5rem;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;}
     .hidden{display:none!important;}@keyframes slideIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+    #resolve-modal .modal-content{overflow:hidden;}
+    #resolve-summary{max-height:26vh;overflow-y:auto;flex-shrink:0;}
+    #resolve-list{flex:1 1 auto;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch;}
+    #resolve-modal .btn{flex-shrink:0;}
     @media(max-width:600px){header{padding:.55rem .75rem;}.logo{font-size:1.2rem;}.nav-tabs{grid-template-columns:repeat(auto-fit,minmax(45px,1fr));}.nav-tab{padding:7px 3px;font-size:.62rem;}.card{padding:.75rem;}.match-card{padding:.75rem;}.btn{padding:6px 10px;font-size:.72rem;}.stat-val{font-size:1.5rem;}.lb-row{grid-template-columns:36px 1fr auto;padding:.6rem;gap:.65rem;}.rules-prize{grid-template-columns:1fr 1fr;}.prize-pct{font-size:1.7rem;}}
   </style>
 </head>
@@ -444,9 +448,18 @@
         <div class="admin-section">
           <div class="card-title">📝 Registrar Resultados</div>
           <div class="info-banner"><strong>"Resolver clasificados y llaves"</strong> asigna 1°/2°/3° de grupo y, según los resultados ya registrados, llena los cruces de Octavos, Cuartos, Semis y Final (ganadores/perdedores). Además verifica contra el fixture programado en la API y avisa si hay conflictos para que elijas con <strong>✏️ Equipos</strong>. Si los puntos no cuadran, usa <strong>"Recalcular puntos"</strong>.</div>
-          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem;align-items:center">
             <button class="btn btn-gold btn-sm" onclick="recalcAllScores()">♻️ Recalcular puntos</button>
-            <button class="btn btn-blue btn-sm" onclick="resolveKnockoutTeams()">🔗 Resolver clasificados y llaves</button>
+            <select id="resolve-stage" style="max-width:185px;padding:6px 28px 6px 8px;font-size:.78rem">
+              <option value="Dieciseisavos">Solo Dieciseisavos</option>
+              <option value="Octavos">Solo Octavos</option>
+              <option value="Cuartos">Solo Cuartos</option>
+              <option value="Semifinales">Solo Semifinales</option>
+              <option value="Tercer Puesto">Solo Tercer Puesto</option>
+              <option value="Final">Solo Final</option>
+              <option value="">⚠️ Todas las fases</option>
+            </select>
+            <button class="btn btn-blue btn-sm" onclick="resolveKnockoutTeams()">🔗 Resolver llaves</button>
           </div>
           <div class="filter-group" id="admin-filter-group"></div>
           <div class="matches-grid" id="admin-matches-list"></div>
@@ -1360,6 +1373,8 @@ function renderAdminMatches(){
   const fg=document.getElementById('admin-filter-group');if(!fg)return;
   if(!fg.innerHTML)fg.innerHTML=stages.map(s=>`<button class="filter-btn ${s===_adminStage?'active':''}" onclick="filterAdminMatches('${s}',this)">${s}</button>`).join('');
   const el=document.getElementById('admin-matches-list');if(!el)return;
+  const rs=document.getElementById('resolve-stage');
+  if(rs&&_adminStage!=='Grupos')rs.value=_adminStage;
   el.innerHTML=Object.values(allMatches).filter(m=>m.stage===_adminStage).map(m=>{
     const cnt=Object.keys(allPredictions[m.id]||{}).length;
     const editBtn=m.stage!=='Grupos'?`<button class="btn btn-blue btn-sm" onclick="editTeams('${m.id}')">✏️ Equipos</button>`:'';
@@ -1504,6 +1519,7 @@ function computeOfficialStandings(){
 }
 async function resolveKnockoutTeams(){
   if(!currentUser?.isAdmin){alert('Solo el admin');return;}
+  const stageFilter=document.getElementById('resolve-stage')?.value||'';
   const groupsDone={};
   WORLD_CUP_MATCHES.filter(m=>m.stage==='Grupos'&&m.group).forEach(m=>{
     if(groupsDone[m.group]===undefined)groupsDone[m.group]=true;
@@ -1571,7 +1587,7 @@ async function resolveKnockoutTeams(){
     });
   });
   // ===== VERIFICACION CON LA API (partidos programados) =====
-  let apiNote='';const conflictIds={};
+  let apiNote='';const conflictIds={};const apiOptions={};
   try{
     const data=await apiFetch(`/competitions/${FD_COMPETITION}/matches`);
     const fd=(data&&data.matches)||[];
@@ -1585,6 +1601,18 @@ async function resolveKnockoutTeams(){
         if(!ok)conflictIds[m.id]=true;
       });
       apiNote='Verificado contra el fixture programado en la API.';
+      // Alternativas que ofrece la API para cada conflicto (mismo cruce o misma fecha/fase)
+      const FD_STAGE={'LAST_32':'Dieciseisavos','LAST_16':'Octavos','QUARTER_FINALS':'Cuartos','SEMI_FINALS':'Semifinales','THIRD_PLACE':'Tercer Puesto','FINAL':'Final'};
+      Object.keys(conflictIds).forEach(mid=>{
+        const m=allMatches[mid];const H=nmOf(mid,'home'),A=nmOf(mid,'away');
+        apiOptions[mid]=koFd.filter(x=>{
+          const stg=FD_STAGE[x.stage];
+          if(stg&&stg!==m.stage)return false;
+          const sameDate=(x.utcDate||'').slice(0,10)===m.date;
+          const shares=teamMatch(H,x.homeTeam.name)||teamMatch(H,x.awayTeam.name)||teamMatch(A,x.homeTeam.name)||teamMatch(A,x.awayTeam.name);
+          return sameDate||shares;
+        }).slice(0,4).map(x=>({home:x.homeTeam.name,away:x.awayTeam.name,date:(x.utcDate||'').slice(0,10)}));
+      });
     }else apiNote='La API aún no tiene partidos de eliminatoria para verificar.';
   }catch(e){apiNote='No se pudo verificar con la API: '+e.message;}
   if(!resolved){alert('Todavía no hay nada por resolver (faltan resultados).\n\n'+apiNote);return;}
@@ -1595,10 +1623,12 @@ async function resolveKnockoutTeams(){
     const mid=mt[1],side=mt[2];
     (byMatch[mid]=byMatch[mid]||{mid,changes:[]}).changes.push({side,from:allMatches[mid][side],to:updates[k],why:reason[k]||''});
   });
-  const items=Object.values(byMatch).sort((a,b)=>allMatches[a.mid].n-allMatches[b.mid].n);
+  const items=Object.values(byMatch).sort((a,b)=>allMatches[a.mid].n-allMatches[b.mid].n)
+    .filter(it=>!stageFilter||allMatches[it.mid].stage===stageFilter);
   // Partidos que chocan con la API pero no tienen cambio propuesto
-  const extra=Object.keys(conflictIds).filter(mid=>!byMatch[mid]).map(mid=>`#${allMatches[mid].n}: ${allMatches[mid].home} vs ${allMatches[mid].away}`);
-  openResolveModal(items,conflictIds,apiNote,extra);
+  const extra=Object.keys(conflictIds).filter(mid=>!byMatch[mid]&&(!stageFilter||allMatches[mid].stage===stageFilter)).map(mid=>`#${allMatches[mid].n}: ${allMatches[mid].home} vs ${allMatches[mid].away}`);
+  if(!items.length){alert('No hay casillas por resolver'+(stageFilter?' en '+stageFilter:'')+'.'+(extra.length?'\n\n⚠️ Pero estos chocan con la API (ajusta con ✏️ Equipos):\n'+extra.join('\n'):'')+'\n\n'+apiNote);return;}
+  openResolveModal(items,conflictIds,apiOptions,apiNote,extra,stageFilter);
 }
 
 /* ===== REVISIÓN CASILLA POR CASILLA DE LAS LLAVES ===== */
@@ -1611,17 +1641,37 @@ function resolveToggleAll(v,onlyClean){
     cb.checked=onlyClean?!_resolveProposal.conflictIds[it.mid]:v;
   });
 }
-function openResolveModal(items,conflictIds,apiNote,extraConflicts){
-  _resolveProposal={items,conflictIds};
+function openResolveModal(items,conflictIds,apiOptions,apiNote,extraConflicts,stageFilter){
+  _resolveProposal={items,conflictIds,apiOptions};
   const nConf=items.filter(it=>conflictIds[it.mid]).length;
   document.getElementById('resolve-summary').innerHTML=
-    `Se proponen cambios en <strong>${items.length}</strong> partido(s). Marca solo los que quieras aplicar.`+
-    (nConf?`<br><br><span style="color:var(--red)">⚠️ ${nConf} no coincide(n) con el fixture de la API</span> y vienen <strong>desmarcados</strong>. Márcalos solo si estás segura de que el correcto es el nuestro.`:`<br><br>✅ Ninguno choca con la API.`)+
-    (extraConflicts.length?`<br><br>⚠️ Además, estos ya están asignados, chocan con la API y no tienen cambio propuesto. Ajústalos con ✏️ Equipos:<br>${extraConflicts.join('<br>')}`:'')+
+    `<strong>${stageFilter||'Todas las fases'}</strong> · ${items.length} partido(s) por revisar. Marca solo los que quieras aplicar; el resto queda intacto.`+
+    (nConf?`<br><br><span style="color:var(--red)">⚠️ ${nConf} no coincide(n) con el fixture de la API</span> y vienen <strong>desmarcados</strong>. En cada uno elige qué cruce dejar.`:`<br><br>✅ Ninguno choca con la API.`)+
+    (extraConflicts.length?`<br><br>⚠️ Estos ya están asignados, chocan con la API y no tienen cambio propuesto. Ajústalos con ✏️ Equipos:<br>${extraConflicts.join('<br>')}`:'')+
     `<br><br><span style="color:var(--muted2);font-size:.7rem">${apiNote}</span>`;
   document.getElementById('resolve-list').innerHTML=items.map(it=>{
     const m=allMatches[it.mid];const conf=!!conflictIds[it.mid];
+    const chg={};it.changes.forEach(c=>chg[c.side]=c.to);
+    const ourH=chg.home!==undefined?chg.home:m.home;
+    const ourA=chg.away!==undefined?chg.away:m.away;
     const rows=it.changes.map(c=>`<div style="font-size:.75rem;margin-top:3px"><span style="color:var(--muted)">${c.side==='home'?'Local':'Visitante'}:</span> <span style="color:var(--muted2)">${c.from}</span> → <strong style="color:var(--green)">${c.to}</strong>${c.why?`<div style="color:var(--muted2);font-size:.65rem;margin-left:.5rem">↳ ${c.why}</div>`:''}</div>`).join('');
+    let picker='';
+    if(conf){
+      const opts=apiOptions[it.mid]||[];
+      picker=`<div style="margin-top:.55rem" onclick="event.preventDefault()">
+        <label style="font-size:.62rem;margin-bottom:3px">¿Cuál cruce dejo?</label>
+        <select id="rsel-${it.mid}" onchange="resolveOnSelect('${it.mid}')" style="font-size:.75rem;padding:6px 28px 6px 8px">
+          <option value="ours">🔢 Nuestro cálculo: ${ourH} vs ${ourA}</option>
+          ${opts.map((o,i)=>`<option value="api:${i}">📡 API: ${o.home} vs ${o.away}${o.date?' · '+o.date:''}</option>`).join('')}
+          <option value="custom">✏️ Personalizado…</option>
+        </select>
+        <div id="rcus-${it.mid}" class="hidden" style="grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.4rem">
+          <input type="text" id="rch-${it.mid}" placeholder="Local" value="${ourH}" style="font-size:.75rem;padding:6px 8px">
+          <input type="text" id="rca-${it.mid}" placeholder="Visitante" value="${ourA}" style="font-size:.75rem;padding:6px 8px">
+        </div>
+        ${opts.length?'':'<div style="color:var(--muted2);font-size:.65rem;margin-top:3px">La API no ofrece una alternativa para esta casilla.</div>'}
+      </div>`;
+    }
     return`<div class="match-card" style="padding:.7rem;margin-bottom:.5rem;border-color:${conf?'rgba(255,23,68,0.45)':'var(--border)'};background:${conf?'rgba(255,23,68,0.04)':'var(--surface2)'}">
       <label style="display:flex;gap:.6rem;align-items:flex-start;cursor:pointer;text-transform:none;letter-spacing:0;color:var(--text);margin:0;font-size:.8rem;font-weight:400">
         <input type="checkbox" id="rs-${it.mid}" ${conf?'':'checked'} style="width:18px;height:18px;flex-shrink:0;margin-top:2px;padding:0">
@@ -1631,21 +1681,41 @@ function openResolveModal(items,conflictIds,apiNote,extraConflicts){
           ${rows}
         </span>
       </label>
+      ${picker}
     </div>`;
   }).join('');
+  document.getElementById('resolve-list').scrollTop=0;
   document.getElementById('resolve-modal').classList.add('active');
+}
+function resolveOnSelect(mid){
+  const s=document.getElementById('rsel-'+mid);const box=document.getElementById('rcus-'+mid);
+  if(box){box.classList.toggle('hidden',s.value!=='custom');if(s.value==='custom')box.style.display='grid';}
+  const cb=document.getElementById('rs-'+mid);if(cb)cb.checked=true;
 }
 async function applyResolveSelection(){
   if(!_resolveProposal){closeResolveModal();return;}
-  const upd={};let n=0,mts=0;
+  const upd={};let n=0,mts=0;const bad=[];
   _resolveProposal.items.forEach(it=>{
     const cb=document.getElementById('rs-'+it.mid);if(!cb||!cb.checked)return;
+    const s=document.getElementById('rsel-'+it.mid);
+    if(s&&s.value==='custom'){
+      const h=(document.getElementById('rch-'+it.mid).value||'').trim();
+      const a=(document.getElementById('rca-'+it.mid).value||'').trim();
+      if(!h||!a){bad.push('#'+allMatches[it.mid].n);return;}
+      upd['matches/'+it.mid+'/home']=h;upd['matches/'+it.mid+'/away']=a;n+=2;mts++;return;
+    }
+    const mt=s&&/^api:(\d+)$/.exec(s.value);
+    if(mt){
+      const o=(_resolveProposal.apiOptions[it.mid]||[])[+mt[1]];
+      if(o){upd['matches/'+it.mid+'/home']=o.home;upd['matches/'+it.mid+'/away']=o.away;n+=2;mts++;return;}
+    }
     mts++;it.changes.forEach(c=>{upd['matches/'+it.mid+'/'+c.side]=c.to;n++;});
   });
+  if(bad.length){alert('Estos quedaron en "Personalizado" pero les falta un equipo: '+bad.join(', ')+'.\nComplétalos o desmárcalos.');return;}
   if(!n){alert('No marcaste ninguna casilla.');return;}
   await db.ref().update(upd);
   _resolveProposal=null;closeResolveModal();
-  alert(`✅ ${n} casilla(s) actualizadas en ${mts} partido(s).\n\nSi rechazaste alguna de la que dependían otras rondas, vuelve a tocar "🔗 Resolver clasificados y llaves" para recalcular el resto con los datos ya corregidos.`);
+  alert(`✅ ${n} casilla(s) actualizadas en ${mts} partido(s).\n\nLo que dejaste sin marcar quedó como estaba. Cuando resuelvas la siguiente fase, la app recalcula con estos datos ya corregidos.`);
   renderAdminMatches();
 }
 
