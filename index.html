@@ -938,14 +938,18 @@ function renderBvKnockoutAdvancers(users,matches){
   if(!shown.length){wrap.innerHTML='';return;}
   const cards=shown.map(m=>{
     const preds=allPredictions[m.id]||{};const actual=actualAdvanceSide(m);
+    const b=advanceBonusFor(m);const lbl=advanceBonusLabel(m);
+    const headTxt=b?`acertar el avance: +${b} pts · ${lbl}`:`sin bono en esta fase — se paga en la Final como ${advanceBonusLabel({stage:'Final'})}`;
     const rows=users.map(u=>{
       const p=preds[u.username];
       if(!p)return`<div class="bv-group-row"><span class="bv-group-nick">${u.username}</span><span style="color:var(--muted2);font-size:.75rem">— sin apuesta —</span></div>`;
       const side=predAdvanceSide(p);const team=side==='home'?m.home:side==='away'?m.away:'?';
       let st='font-size:.78rem;font-weight:700';if(actual)st+=side===actual?';color:var(--green)':';color:var(--red)';
-      return`<div class="bv-group-row"><span class="bv-group-nick">${u.username}</span><span style="${st}">▶ ${team}</span></div>`;
+      let badge='';
+      if(actual&&b){const got=side===actual?b:0;badge=`<div style="font-size:.7rem;font-weight:700;margin-top:2px;color:${got?'var(--gold)':'var(--muted2)'}">${got?'+'+got+' pts':'0 pts'}</div>`;}
+      return`<div class="bv-group-row"><span class="bv-group-nick">${u.username}</span><span style="${st}">▶ ${team}${badge}</span></div>`;
     }).join('');
-    return`<div class="bv-group-card"><div class="bv-group-header">${m.home} vs ${m.away}</div>${rows}</div>`;
+    return`<div class="bv-group-card"><div class="bv-group-header">${m.home} vs ${m.away}<div style="font-size:.65rem;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;margin-top:2px">${headTxt}</div></div>${rows}</div>`;
   }).join('');
   wrap.innerHTML=`<div class="bv-group-section"><div class="bv-group-section-title">▶ Quién avanza según cada participante</div><div class="bv-group-grid">${cards}</div></div>`;
 }
@@ -968,13 +972,12 @@ function renderBvKnockoutAccum(users,matches,stage){
   const wrap=document.getElementById('bv-group-accum-wrap');if(!wrap)return;
   const finished=matches.filter(m=>m.status==='finished');
   if(!finished.length){wrap.innerHTML='';return;}
-  const bonusOf=(m)=>{if(m.stage==='Dieciseisavos'||m.stage==='Octavos'||m.stage==='Cuartos')return knockoutAdvanceBonus(m.stage);if(m.stage==='Final')return 100;if(m.stage==='Tercer Puesto')return 45;return 0;};
   const rows=users.map(u=>{
     let mp=0,bp=0;
     finished.forEach(m=>{
       const p=allPredictions[m.id]?.[u.username];if(!p)return;
       mp+=computeMatchPoints(p.home,p.away,m.scoreHome,m.scoreAway,m.stage,m.color).points;
-      const actual=actualAdvanceSide(m),b=bonusOf(m);
+      const actual=actualAdvanceSide(m),b=advanceBonusFor(m);
       if(actual&&b&&predAdvanceSide(p)===actual)bp+=b;
     });
     return {nick:u.username,mp,bp,tot:mp+bp};
@@ -1404,7 +1407,20 @@ function groupQualyPointsFor(username,grp){
   return {pts};
 }
 /* ===== Bonos por equipo que clasifica en eliminatorias ===== */
-function knockoutAdvanceBonus(stage){return {'Dieciseisavos':20,'Octavos':25,'Cuartos':30}[stage]||0;}
+function knockoutAdvanceBonus(stage){return {'Dieciseisavos':20,'Octavos':25,'Cuartos':30,'Semifinales':30}[stage]||0;}
+/* Bono por acertar quién avanza EN ESE PARTIDO. Fuente única: la usan
+   computeAllTotals, el acumulado y la tarjeta de "quién avanza".
+   Cada fase paga el bono de su propia sección del reglamento. */
+function advanceBonusFor(m){
+  if(m.stage==='Dieciseisavos'||m.stage==='Octavos'||m.stage==='Cuartos'||m.stage==='Semifinales')return knockoutAdvanceBonus(m.stage);
+  if(m.stage==='Final')return 100;
+  if(m.stage==='Tercer Puesto')return 45;
+  return 0;
+}
+/* Qué se está acertando con el bono, en términos del partido apostado */
+function advanceBonusLabel(m){
+  return {'Dieciseisavos':'pasa a Octavos','Octavos':'pasa a Cuartos','Cuartos':'pasa a Semis','Semifinales':'pasa a la Final','Tercer Puesto':'3° lugar (30) + 4° lugar (15)','Final':'Campeón (60) + Subcampeón (40)'}[m.stage]||'';
+}
 function actualAdvanceSide(m){if(m.status!=='finished')return null;if(m.scoreHome>m.scoreAway)return 'home';if(m.scoreAway>m.scoreHome)return 'away';return m.advance||null;}
 function predAdvanceSide(p){if(!p)return null;const h=parseInt(p.home),a=parseInt(p.away);if(!isNaN(h)&&!isNaN(a)){if(h>a)return 'home';if(a>h)return 'away';}return p.advance||null;}
 function computeAllTotals(){
@@ -1430,11 +1446,8 @@ function computeAllTotals(){
     if(m.status!=='finished'||m.stage==='Grupos')return;
     const actual=actualAdvanceSide(m);if(!actual)return;
     const preds=allPredictions[m.id]||{};
-    let bonus=0;
-    if(m.stage==='Dieciseisavos'||m.stage==='Octavos'||m.stage==='Cuartos')bonus=knockoutAdvanceBonus(m.stage);
-    else if(m.stage==='Final')bonus=100;            // campeón 60 + subcampeón 40
-    else if(m.stage==='Tercer Puesto')bonus=45;     // 3° 30 + 4° 15
-    if(!bonus)return;                                 // Semifinales no dan bono aparte
+    let bonus=advanceBonusFor(m);
+    if(!bonus)return;                                 // sin bono definido para esta fase
     Object.keys(preds).forEach(un=>{if(totals[un]!==undefined&&predAdvanceSide(preds[un])===actual)totals[un]+=bonus;});
   });
   if(officialScorer&&officialScorer.name){
